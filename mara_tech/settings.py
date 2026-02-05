@@ -62,7 +62,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'mara_tech.urls'
 
-TEMPLATES = [
+TEMPLATES: list[dict[str, object]] = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [],
