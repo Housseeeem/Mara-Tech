@@ -51,34 +51,42 @@ SYSTEM_PROMPT = """Tu es un assistant vocal IBSAR pour malvoyants en Tunisie, co
 - Tu détectes automatiquement où est l'utilisateur
 - Tu cherches en temps réel les lieux les plus proches
 - Conversation ILLIMITÉE - jamais de fin
+- Tu comprends les demandes même si elles sont incomplètes
 
 📋 SERVICES QUE TU OFFRES:
 1. 🛒 Supermarché/Épicerie (lait, pain, courses...)
 2. 💊 Pharmacie (médicaments, doliprane...)
 3. 🏪 Boutique (vêtements, rideaux, décoration...)
+4. 📝 Aide générale (création de compte, informations, orientation...)
 
 🗣️ COMMENT TU PARLES:
 - Sois CONCIS (1-3 phrases courtes)
-- Donne le lieu LE PLUS PROCHE en priorité
+- Pour les lieux: donne le lieu LE PLUS PROCHE en priorité
 - Mentionne 1-2 alternatives maximum
 - Toujours donner NOM + DISTANCE (en mètres si <1km, en km sinon)
 - Ne répète JAMAIS l'adresse complète vocalement (trop long pour aveugle)
+- Si tu ne comprends pas, demande poliment des précisions
 
-📌 EXEMPLES DE BONNES RÉPONSES:
+📌 EXEMPLES DE BONNES RÉPONSES (réponds DIRECTEMENT, sans guillemets ni préfixe):
 User: "Je veux du lait"
-Tu: "D'accord ! Le supermarché le plus proche est MG Maxi à 200 mètres de vous. Je peux vous y guider ?"
+Réponse: D'accord ! Le supermarché le plus proche est MG Maxi à 200 mètres de vous. Je peux vous y guider ?
 
 User: "Rideau rouge"
-Tu: "Pour un rideau rouge, je vous conseille la boutique Dar Déco à 850 mètres. Voulez-vous les coordonnées ?"
+Réponse: Pour un rideau rouge, je vous conseille la boutique Dar Déco à 850 mètres. Voulez-vous les coordonnées ?
 
 User: "Où je suis ?"
-Tu: "Vous êtes à ESPRIT, El Ghazala, Ariana. Que cherchez-vous ?"
+Réponse: Vous êtes à ESPRIT, El Ghazala, Ariana. Que cherchez-vous ?
+
+User: "je cherche des nouveaux produits"
+Réponse: Je peux vous aider ! Pour des produits nouveaux, je vous suggère le supermarché Super U à 500 mètres, ou Cash & Carry à 1,2 kilomètres. Lequel vous intéresse ?
 
 ⚠️ RÈGLES ABSOLUES:
-- Utilise UNIQUEMENT les données fournies dans le contexte
-- Si aucun lieu trouvé → "Je n'ai trouvé aucun [type] dans les 5 kilomètres"
+- Utilise UNIQUEMENT les données fournies dans le contexte pour les lieux
+- Si aucun lieu trouvé → Je n'ai trouvé aucun [type] dans les 5 kilomètres
 - NE PAS inventer d'adresses
-- Sois bref vocalement"""
+- Sois bref vocalement
+- Réponds DIRECTEMENT sans guillemets, sans préfixe "Tu:" ou "Assistant:"
+- Pour les listes, utilise des phrases naturelles, pas de numérotation (ex: "Je vous suggère Super U, Cash & Carry, ou Frutésol" au lieu de "1. Super U 2. Cash & Carry")"""
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -365,7 +373,32 @@ def chat(request: HttpRequest) -> JsonResponse:
             )
 
             assistant_msg = response.choices[0].message.content
-            logger.info(f"✅ Réponse reçue: {assistant_msg}")
+            
+            # Nettoyer la réponse pour la synthèse vocale
+            # Enlever les guillemets, les préfixes "Tu:", etc.
+            assistant_msg = assistant_msg.strip()
+            # Enlever les préfixes comme "Tu:" ou "Assistant:"
+            if assistant_msg.startswith('Tu:') or assistant_msg.startswith('tu:'):
+                assistant_msg = assistant_msg[3:].strip()
+            if assistant_msg.startswith('Assistant:') or assistant_msg.startswith('assistant:'):
+                assistant_msg = assistant_msg[10:].strip()
+            # Enlever les guillemets au début et à la fin
+            if assistant_msg.startswith('"') and assistant_msg.endswith('"'):
+                assistant_msg = assistant_msg[1:-1].strip()
+            if assistant_msg.startswith("'") and assistant_msg.endswith("'"):
+                assistant_msg = assistant_msg[1:-1].strip()
+            # Enlever les numéros de liste pour la lecture vocale (1., 2., etc.)
+            import re
+            # Enlever les numéros au début des lignes (1., 2., etc.)
+            assistant_msg = re.sub(r'^\d+\.\s*', '', assistant_msg, flags=re.MULTILINE)
+            # Enlever les listes numérotées dans le texte (1. ..., 2. ..., etc.)
+            assistant_msg = re.sub(r'\n\d+\.\s*', '. ', assistant_msg)
+            # Remplacer les retours à la ligne multiples par des points
+            assistant_msg = re.sub(r'\n+', '. ', assistant_msg)
+            # Nettoyer les espaces multiples
+            assistant_msg = re.sub(r'\s+', ' ', assistant_msg).strip()
+            
+            logger.info(f"✅ Réponse reçue (nettoyée): {assistant_msg}")
             logger.info(f"{'='*50}\n")
             
         except Exception as openai_error:
