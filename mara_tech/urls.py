@@ -25,4 +25,8 @@ urlpatterns = [
     path('api/banking/transaction/', views.banking_transaction, name='banking-transaction'),
     path('api/banking/balance/', views.get_account_balance, name='account-balance'),
     path('api/banking/history/', views.get_transaction_history, name='transaction-history'),
+    # Authentication (face recognition)
+    path('api/auth/register/', views.register_user, name='register'),
+    path('api/auth/login/', views.login_face_recognition, name='login'),
+    path('api/auth/profile/<int:user_id>/', views.get_user_profile, name='profile'),
 ]
