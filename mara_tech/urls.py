@@ -29,4 +29,7 @@ urlpatterns = [
     path('api/auth/register/', views.register_user, name='register'),
     path('api/auth/login/', views.login_face_recognition, name='login'),
     path('api/auth/profile/<int:user_id>/', views.get_user_profile, name='profile'),
+    # Shopping assistant (IBSAR)
+    path('shopping/', views.shopping_page, name='shopping-page'),
+    path('api/chat/', views.chat, name='shopping-chat'),
 ]

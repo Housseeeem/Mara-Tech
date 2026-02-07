@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IBSAR - Assistant Vocal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            padding: 40px;
+            max-width: 600px;
+        }
+        
+        .mic-circle {
+            width: 220px;
+            height: 220px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 40px;
+            border: 6px solid rgba(255, 255, 255, 0.8);
+            transition: all 0.3s;
+        }
+        
+        .mic-circle.listening {
+            animation: pulse 1.5s infinite;
+            background: rgba(255, 100, 100, 0.25);
+            border-color: #ff6b6b;
+        }
+        
+        .mic-circle.speaking {
+            animation: glow 1s infinite;
+            background: rgba(100, 255, 100, 0.25);
+            border-color: #51cf66;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { 
+                transform: scale(1); 
+                box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); 
+            }
+            50% { 
+                transform: scale(1.08); 
+                box-shadow: 0 0 0 40px rgba(255, 107, 107, 0); 
+            }
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 30px rgba(81, 207, 102, 0.6); }
+            50% { box-shadow: 0 0 60px rgba(81, 207, 102, 1); }
+        }
+        
+        .mic-icon {
+            font-size: 90px;
+        }
+        
+        .status-text {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 25px 0;
+            min-height: 60px;
+            line-height: 1.4;
+        }
+        
+        .wave {
+            display: none;
+            justify-content: center;
+            gap: 6px;
+            margin: 25px 0;
+        }
+        
+        .wave.active {
+            display: flex;
+        }
+        
+        .wave span {
+            width: 5px;
+            height: 35px;
+            background: white;
+            border-radius: 3px;
+            animation: wave 1.2s infinite ease-in-out;
+        }
+        
+        .wave span:nth-child(2) { animation-delay: 0.1s; }
+        .wave span:nth-child(3) { animation-delay: 0.2s; }
+        .wave span:nth-child(4) { animation-delay: 0.3s; }
+        .wave span:nth-child(5) { animation-delay: 0.4s; }
+        
+        @keyframes wave {
+            0%, 100% { height: 15px; }
+            50% { height: 50px; }
+        }
+
+        .location-info {
+            font-size: 14px;
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="mic-circle" id="micCircle">
+            <div class="mic-icon">🎤</div>
+        </div>
+        
+        <div class="status-text" id="status">Initialisation...</div>
+        
+        <div class="wave" id="wave">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="location-info" id="locationInfo">📍 Détection position...</div>
+    </div>
+
+    <script>
+        console.log('🚀 IBSAR Assistant - Démarrage');
+        
+        // API URL - pointe vers Django backend sur le port 8000
+        const API_URL = 'http://localhost:8000/api/chat/';
+        
+        let conversationHistory = [];
+        let recognition;
+        let synthesis = window.speechSynthesis;
+        let userLocation = null;  // ✅ NULL au départ - attend GPS réel
+        let isListening = false;
+        let isSpeaking = false;
+        let autoRestart = true;
+        let isInit = false;
+        let gpsReady = false;  // ✅ Nouveau flag
+
+        const statusEl = document.getElementById('status');
+        const micCircle = document.getElementById('micCircle');
+        const waveEl = document.getElementById('wave');
+        const locationEl = document.getElementById('locationInfo');
+
+        // =====================================
+        // SYNTHÈSE VOCALE
+        // =====================================
+        async function speak(text) {
+            return new Promise((resolve) => {
+                console.log('🔊', text);
+                
+                if (isSpeaking) synthesis.cancel();
+                
+                isSpeaking = true;
+                micCircle.classList.remove('listening');
+                micCircle.classList.add('speaking');
+                waveEl.classList.add('active');
+                statusEl.textContent = '🔊 Je parle...';
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                const voices = synthesis.getVoices();
+                const frVoice = voices.find(v => v.lang.startsWith('fr'));
+                if (frVoice) utterance.voice = frVoice;
+                
+                utterance.lang = 'fr-FR';
+                utterance.rate = 0.9;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+                
+                utterance.onend = () => {
+                    isSpeaking = false;
+                    micCircle.classList.remove('speaking');
+                    waveEl.classList.remove('active');
+                    resolve();
+                };
+                
+                utterance.onerror = () => {
+                    isSpeaking = false;
+                    micCircle.classList.remove('speaking');
+                    waveEl.classList.remove('active');
+                    resolve();
+                };
+                
+                synthesis.speak(utterance);
+            });
+        }
+
+        // =====================================
+        // RECONNAISSANCE VOCALE
+        // =====================================
+        function startListening() {
+            if (isSpeaking) {
+                setTimeout(startListening, 300);
+                return;
+            }
+            
+            if (!recognition) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                
+                if (!SpeechRecognition) {
+                    statusEl.textContent = '❌ Navigateur incompatible';
+                    speak('Utilisez Chrome ou Edge svp');
+                    return;
+                }
+                
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'fr-FR';
+                
+                recognition.onstart = () => {
+                    isListening = true;
+                    micCircle.classList.add('listening');
+                    statusEl.textContent = '🎤 Je vous écoute...';
+                };
+                
+                recognition.onresult = async (event) => {
+                    const text = event.results[0][0].transcript;
+                    console.log('📝', text);
+                    
+                    if (text.trim()) {
+                        micCircle.classList.remove('listening');
+                        statusEl.textContent = '🤔 Recherche...';
+                        await handleMessage(text);
+                    }
+                };
+                
+                recognition.onerror = (e) => {
+                    if (e.error === 'not-allowed') {
+                        statusEl.textContent = '❌ Micro bloqué';
+                        speak('Autorisez le micro svp');
+                        autoRestart = false;
+                        return;
+                    }
+                    
+                    if (autoRestart && !isSpeaking) {
+                        setTimeout(startListening, 800);
+                    }
+                };
+                
+                recognition.onend = () => {
+                    isListening = false;
+                    micCircle.classList.remove('listening');
+                    
+                    if (autoRestart && !isSpeaking && isInit) {
+                        setTimeout(startListening, 400);
+                    }
+                };
+            }
+            
+            if (!isListening) {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.warn('Reconnaissance déjà active');
+                }
+            }
+        }
+
+        // =====================================
+        // GESTION MESSAGE
+        // =====================================
+        async function handleMessage(message) {
+            try {
+                console.log('📤 Envoi message:', message);
+                console.log('📍 Location:', userLocation);
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        history: conversationHistory,
+                        location: userLocation
+                    })
+                });
+                
+                console.log('📥 Réponse status:', response.status);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+                    console.error('❌ Erreur API:', errorData);
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Données reçues:', data);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                conversationHistory = data.history || conversationHistory;
+                
+                // ✅ PARLER LA RÉPONSE
+                if (data.response) {
+                    await speak(data.response);
+                } else {
+                    await speak('Désolé, je n\'ai pas reçu de réponse.');
+                }
+                
+                // ✅ RELANCER L'ÉCOUTE
+                statusEl.textContent = '🎤 À votre écoute...';
+                setTimeout(startListening, 500);
+                
+            } catch (err) {
+                console.error('❌ Erreur complète:', err);
+                const errorMsg = err.message || 'Erreur technique';
+                statusEl.textContent = `⚠️ ${errorMsg}`;
+                await speak(`Erreur: ${errorMsg}. Je relance dans un instant.`);
+                setTimeout(startListening, 2000);
+            }
+        }
+
+        // =====================================
+        // GÉOLOCALISATION
+        // =====================================
+        function getGPS() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject('GPS non supporté');
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        userLocation = {
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude
+                        };
+                        console.log('✅ GPS:', userLocation);
+                        locationEl.textContent = `📍 Position: ${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`;
+                        gpsReady = true;
+                        resolve();
+                    },
+                    (err) => {
+                        console.warn('⚠️ GPS refusé, utilisation Tunis');
+                        userLocation = { lat: 36.8065, lng: 10.1815 };
+                        locationEl.textContent = '📍 Position par défaut: Tunis';
+                        gpsReady = true;
+                        resolve();
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
+        }
+
+        // =====================================
+        // UTILITAIRES
+        // =====================================
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        // =====================================
+        // INITIALISATION
+        // =====================================
+        async function init() {
+            console.log('🔧 Init...');
+            
+            statusEl.textContent = 'Chargement voix...';
+            
+            // Voix
+            if (synthesis.getVoices().length === 0) {
+                await new Promise(r => {
+                    synthesis.onvoiceschanged = () => r();
+                    setTimeout(r, 1000);
+                });
+            }
+            
+            // ✅ ATTENDRE GPS RÉEL
+            statusEl.textContent = '📍 Détection position...';
+            try {
+                await getGPS();
+            } catch (e) {
+                console.error(e);
+            }
+            
+            // Message bienvenue
+            statusEl.textContent = '👋 Bienvenue...';
+            await speak("Bonjour ! Je suis votre assistant IBSAR. Je peux vous aider à trouver un supermarché, une pharmacie ou une boutique proche de vous. Que cherchez-vous ?");
+            
+            // ✅ DÉMARRER L'ÉCOUTE
+            isInit = true;
+            statusEl.textContent = '🎤 Je vous écoute...';
+            setTimeout(startListening, 600);
+        }
+
+        // =====================================
+        // DÉMARRAGE
+        // =====================================
+        window.addEventListener('load', () => {
+            console.log('✅ Page prête');
+            setTimeout(init, 1000);
+        });
+    </script>
+</body>
+</html>
+
