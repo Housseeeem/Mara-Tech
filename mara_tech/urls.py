@@ -22,4 +22,7 @@ from . import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/vision/quality/', views.vision_quality, name='vision-quality'),
+    path('api/banking/transaction/', views.banking_transaction, name='banking-transaction'),
+    path('api/banking/balance/', views.get_account_balance, name='account-balance'),
+    path('api/banking/history/', views.get_transaction_history, name='transaction-history'),
 ]
