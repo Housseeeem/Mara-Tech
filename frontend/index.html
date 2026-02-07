@@ -19,6 +19,25 @@
         .listening-indicator {
             animation: pulse 1s infinite;
         }
+        
+        /* Accessibility Control Panel - Always readable */
+        #accessibilityControlPanel {
+            font-size: 16px !important;
+            line-height: 1.5 !important;
+        }
+        
+        #accessibilityControlPanel button {
+            font-size: 14px !important;
+            padding: 8px 12px !important;
+        }
+        
+        #accessibilityControlPanel h4 {
+            font-size: 18px !important;
+        }
+        
+        #accessibilityControlPanel p {
+            font-size: 14px !important;
+        }
     </style>
 </head>
 
@@ -39,14 +58,22 @@
             class="hidden md:flex items-center gap-6 lg:gap-8 rounded-full px-12 py-3 bg-white shadow-sm bg-opacity-50 font-Ovo dark:border dark:border-white/30 dark:bg-transparent ">
             <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#top">Home</a></li>
             <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#about">About us</a></li>
-            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#services">Services</a></li>
-            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#contact">Contact us</a></li>
+            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#banking">Banking</a></li>
+            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#shopping">Shopping</a></li>
         </ul>
 
         <div class="flex items-center gap-4">
-            <button onclick="toggleTheme()">
+            <button onclick="toggleTheme()" title="Toggle theme">
                 <img src="./assets/Moon.png" alt="" class="w-7 dark:hidden" />
                 <img src="./assets/sun_icon.png" alt="" class="w-7 hidden dark:block" />
+            </button>
+
+            <button onclick="startVoiceNavigation()" title="Voice Navigation" style="background: none; border: none; cursor: pointer; display: flex; align-items: center;">
+                <span style="font-size: 1.5em;">🎤</span>
+            </button>
+
+            <button onclick="toggleAccessibilityMode()" title="Toggle Accessibility Mode" style="background: none; border: none; cursor: pointer; display: flex; align-items: center;">
+                <span style="font-size: 1.5em; filter: grayscale(100%);">♿</span>
             </button>
 
             <!-- <a href="#contact"
@@ -72,10 +99,10 @@
             </div>
 
             <li><a class="font-semibold text-3xl" href="#top" onclick="closeMenu()">Home</a></li>
-            <li><a class="font-semibold text-3xl" href="#about" onclick="closeMenu()">About me</a></li>
-            <li><a class="font-semibold text-3xl" href="#services" onclick="closeMenu()">Services</a></li>
-            <li><a class="font-semibold text-3xl" href="#work" onclick="closeMenu()">My Work</a></li>
-            <li><a class="font-semibold text-3xl" href="#contact" onclick="closeMenu()">Contact me</a></li>
+            <li><a class="font-semibold text-3xl" href="#about" onclick="closeMenu()">About us</a></li>
+            <li><a class="font-semibold text-3xl" href="#banking" onclick="closeMenu()">Banking</a></li>
+            <li><a class="font-semibold text-3xl" href="#shopping" onclick="closeMenu()">Shopping</a></li>
+            <li><a class="font-semibold text-3xl" href="#camera" onclick="closeMenu()">Camera</a></li>
         </ul>
     </nav>
 
@@ -90,12 +117,12 @@
         <h1 class="text-3xl sm:text-6xl lg:text-[66px] font-Ovo">حوّل صوتك إلى رؤية</h1>
 
         <div class="flex flex-col sm:flex-row items-center gap-4 mt-4">
-            <a href="#contact"
+            <a href="#banking"
                 class="px-16 py-5 border-2 border-black rounded-sm bg-black text-white text-xl font-bold flex items-center gap-4 hover:bg-gray-800 transition min-h-[56px]">
                 Banking
             </a>
 
-            <a href="./assets/dev-icon.png" download
+            <a href="#shopping"
                 class="px-16 py-5 border-2 border-black rounded-sm bg-black text-white text-xl font-bold flex items-center gap-4 hover:bg-gray-800 transition min-h-[56px]">
                 Shopping
             </a>
@@ -190,14 +217,292 @@
                     Check Vision
                 </button>
                 <button onclick="stopCamera()" id="stopBtn" style="display:none;"
-                    class="px-8 py-3 border-2 border-red-600 rounded-sm bg-red-600 text-white font-bold hover:bg-red-700 transition">
-                    Stop Camera
+                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200">
+                    Close Camera
                 </button>
             </div>
+
+            <!-- Test Mode Section -->
+            <div class="mt-8 p-6 border-2 border-dashed border-gray-400 dark:border-white/40 rounded-lg max-w-lg w-full bg-blue-50 dark:bg-blue-900/20">
+                <h4 class="font-bold text-lg mb-4 dark:text-white">🧪 Test Mode - 3 Niveaux de Vision</h4>
+                <p class="text-sm text-gray-600 dark:text-white/80 mb-4">Testez les trois niveaux de vision:</p>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="testVisionScore(85)" 
+                        class="px-4 py-2 border border-green-600 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50 transition font-semibold">
+                        ✓ Normal (85)
+                    </button>
+                    <button onclick="testVisionScore(50)" 
+                        class="px-4 py-2 border border-orange-600 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded hover:bg-orange-100 dark:hover:bg-orange-900/50 transition font-semibold">
+                        ⚠️ Faible (50)
+                    </button>
+                    <button onclick="testVisionScore(25)" 
+                        class="px-4 py-2 border border-red-600 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition font-semibold">
+                        ✗ Très Faible (25)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Accessibility Mode Control Panel (floating) -->
+            <div id="accessibilityControlPanel" style="display: none;" class="fixed bottom-6 right-6 z-[9999] p-6 bg-white dark:bg-darkTheme border-3 border-orange-500 rounded-xl shadow-2xl max-w-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="font-bold text-lg dark:text-white">♿ Mode Accessibilité</h4>
+                    <button onclick="disableAccessibilityMode()" class="text-gray-600 dark:text-white/80 hover:text-black dark:hover:text-white font-bold text-xl">✕</button>
+                </div>
+                <p class="text-sm text-gray-600 dark:text-white/80 mb-4">Changez de niveau ou désactivez:</p>
+                <div class="flex flex-col gap-3">
+                    <button onclick="testVisionScore(85)" 
+                        class="px-4 py-2 border border-green-600 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50 transition font-semibold w-full">
+                        ✓ Normal (85)
+                    </button>
+                    <button onclick="testVisionScore(50)" 
+                        class="px-4 py-2 border border-orange-600 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded hover:bg-orange-100 dark:hover:bg-orange-900/50 transition font-semibold w-full">
+                        ⚠️ Faible (50)
+                    </button>
+                    <button onclick="testVisionScore(25)" 
+                        class="px-4 py-2 border border-red-600 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition font-semibold w-full">
+                        ✗ Très Faible (25)
+                    </button>
+                    <button onclick="disableAccessibilityMode()" 
+                        class="px-4 py-2 border-2 border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition font-semibold w-full">
+                        ↩️ Désactiver
+                    </button>
+                </div>
+            </div>
+
             <p id="visionStatus" class="text-sm text-gray-700 dark:text-white/80"></p>
         </div>
     </div>
 
+    <!-- ----- banking section ------ -->
+    <div id="banking" class="w-full px-[12%] py-20 scroll-mt-20">
+        <div class="flex justify-between items-center mb-8 max-w-5xl mx-auto">
+            <div>
+                <h4 class="mb-2 text-lg font-Ovo">Financial Services</h4>
+                <h2 class="text-5xl font-Ovo">Banking</h2>
+            </div>
+            <button onclick="startBankingVoiceControl()" title="Voice Banking Control" 
+                class="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition flex items-center gap-2">
+                🎤 Voice Control
+            </button>
+        </div>
+
+        <!-- Main Banking View -->
+        <div id="bankingMainView" class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-16">
+            <!-- Account Overview Card -->
+            <div class="border border-gray-300 dark:border-white/30 rounded-2xl p-8 hover:shadow-lg dark:hover:shadow-white/20 transition">
+                <h3 class="text-2xl font-semibold mb-6 dark:text-white">Your Account</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-white/80">Account Balance:</span>
+                        <span id="accountBalance" class="text-2xl font-bold dark:text-white">$5,240.50</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-white/80">Account Type:</span>
+                        <span class="dark:text-white">Savings Account</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-white/80">Account Number:</span>
+                        <span class="dark:text-white">****5678</span>
+                    </div>
+                </div>
+                <button onclick="viewBalance()" class="w-full mt-8 px-6 py-3 border-2 border-black dark:border-white rounded-lg bg-black dark:bg-white text-white dark:text-black font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition">
+                    💰 View Balance
+                </button>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="border border-gray-300 dark:border-white/30 rounded-2xl p-8 hover:shadow-lg dark:hover:shadow-white/20 transition">
+                <h3 class="text-2xl font-semibold mb-6 dark:text-white">Quick Actions</h3>
+                <div class="space-y-4">
+                    <button onclick="showTransactionForm()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white">
+                        💳 Make Transaction
+                    </button>
+                    <button onclick="showTransactions()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white">
+                        📊 View Transactions
+                    </button>
+                    <button onclick="viewBalance()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white">
+                        💰 Check Balance
+                    </button>
+                    <button onclick="showMainBanking()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white">
+                        🏠 Home
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voice Transaction Interface (Hidden by default) -->
+        <div id="transactionForm" class="max-w-3xl mx-auto mb-16 border border-blue-300 dark:border-blue-500 rounded-2xl p-8 bg-blue-50 dark:bg-blue-900/20" style="display: none;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-semibold dark:text-white">🎤 Voice Transaction</h3>
+                <button onclick="cancelVoiceTransaction()" class="text-gray-600 dark:text-white/80 hover:text-black dark:hover:text-white">✕</button>
+            </div>
+            
+            <!-- Conversation Display -->
+            <div id="voiceConversation" class="min-h-[300px] mb-6 space-y-4">
+                <div class="text-center py-12">
+                    <div class="text-6xl mb-4">🎙️</div>
+                    <p class="text-lg text-gray-600 dark:text-white/80">Click "Start Voice Transaction" to begin</p>
+                </div>
+            </div>
+
+            <!-- Transaction Summary -->
+            <div id="transactionSummary" class="p-6 bg-white dark:bg-darkTheme rounded-lg border-2 border-gray-300 dark:border-white/30 mb-6" style="display: none;">
+                <h4 class="font-semibold mb-4 dark:text-white">Transaction Summary</h4>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600 dark:text-white/70">Recipient:</span>
+                        <span id="summaryRecipient" class="font-semibold dark:text-white">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600 dark:text-white/70">Amount:</span>
+                        <span id="summaryAmount" class="font-semibold dark:text-white">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600 dark:text-white/70">Description:</span>
+                        <span id="summaryDescription" class="font-semibold dark:text-white">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex gap-4">
+                <button id="startVoiceTransactionBtn" onclick="startVoiceTransaction()" class="flex-1 px-6 py-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                    🎤 Start Voice Transaction
+                </button>
+                <button id="confirmTransactionBtn" onclick="confirmVoiceTransaction()" style="display: none;" class="flex-1 px-6 py-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition">
+                    ✓ Confirm & Send
+                </button>
+                <button onclick="cancelVoiceTransaction()" class="px-6 py-4 border-2 border-gray-400 dark:border-white/50 rounded-lg font-semibold dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <!-- Transactions List (Hidden by default) -->
+        <div id="transactionsList" class="max-w-5xl mx-auto border border-gray-300 dark:border-white/30 rounded-2xl p-8 bg-white dark:bg-darkTheme" style="display: none;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-semibold dark:text-white">Transaction History</h3>
+                <button onclick="showMainBanking()" class="px-4 py-2 border-2 border-gray-400 dark:border-white/50 rounded-lg font-semibold dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition">
+                    ← Back
+                </button>
+            </div>
+            <div id="transactionsContainer" class="space-y-4">
+                <!-- Transactions will be populated here -->
+            </div>
+        </div>
+
+        <!-- Balance Display (Hidden by default) -->
+        <div id="balanceDisplay" class="max-w-3xl mx-auto border border-green-300 dark:border-green-500 rounded-2xl p-8 bg-green-50 dark:bg-green-900/20" style="display: none;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-semibold dark:text-white">Account Balance</h3>
+                <button onclick="showMainBanking()" class="text-gray-600 dark:text-white/80 hover:text-black dark:hover:text-white">✕</button>
+            </div>
+            <div class="text-center py-8">
+                <p class="text-gray-600 dark:text-white/80 mb-4">Your current balance is:</p>
+                <p id="balanceAmount" class="text-6xl font-bold text-green-600 dark:text-green-400">$5,240.50</p>
+            </div>
+            <button onclick="showMainBanking()" class="w-full mt-6 px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-bold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition">
+                Continue
+            </button>
+        </div>
+    </div>
+
+    <!-- ----- shopping section ------ -->
+    <div id="shopping" class="w-full px-[12%] py-20 scroll-mt-20 bg-gray-50 dark:bg-darkTheme/50">
+        <h4 class="text-center mb-2 text-lg font-Ovo">Marketplace</h4>
+        <h2 class="text-center text-5xl font-Ovo mb-16">Shopping</h2>
+        
+        <!-- Search and Filter -->
+        <div class="max-w-5xl mx-auto mb-12">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input type="text" placeholder="Search products..." 
+                    class="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-white/30 rounded-lg dark:bg-darkTheme dark:text-white focus:outline-none focus:border-black dark:focus:border-white">
+                <button class="px-8 py-3 border-2 border-black dark:border-white rounded-lg bg-black dark:bg-white text-white dark:text-black font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition">
+                    🔍 Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto mb-12">
+            <!-- Product Card 1 -->
+            <div class="border border-gray-300 dark:border-white/30 rounded-2xl overflow-hidden hover:shadow-lg dark:hover:shadow-white/20 transition bg-white dark:bg-darkTheme">
+                <div class="w-full h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                    <span style="font-size: 4em;">📱</span>
+                </div>
+                <div class="p-6">
+                    <h4 class="text-lg font-semibold mb-2 dark:text-white">Smart Watch</h4>
+                    <p class="text-sm text-gray-600 dark:text-white/70 mb-4">Advanced fitness tracking & notifications</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-2xl font-bold dark:text-white">$199.99</span>
+                        <button class="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 2 -->
+            <div class="border border-gray-300 dark:border-white/30 rounded-2xl overflow-hidden hover:shadow-lg dark:hover:shadow-white/20 transition bg-white dark:bg-darkTheme">
+                <div class="w-full h-48 bg-gradient-to-br from-purple-400 to-pink-600 flex items-center justify-center">
+                    <span style="font-size: 4em;">🎧</span>
+                </div>
+                <div class="p-6">
+                    <h4 class="text-lg font-semibold mb-2 dark:text-white">Wireless Headphones</h4>
+                    <p class="text-sm text-gray-600 dark:text-white/70 mb-4">Premium noise-cancelling audio</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-2xl font-bold dark:text-white">$149.99</span>
+                        <button class="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 3 -->
+            <div class="border border-gray-300 dark:border-white/30 rounded-2xl overflow-hidden hover:shadow-lg dark:hover:shadow-white/20 transition bg-white dark:bg-darkTheme">
+                <div class="w-full h-48 bg-gradient-to-br from-green-400 to-teal-600 flex items-center justify-center">
+                    <span style="font-size: 4em;">⌚</span>
+                </div>
+                <div class="p-6">
+                    <h4 class="text-lg font-semibold mb-2 dark:text-white">Fitness Tracker</h4>
+                    <p class="text-sm text-gray-600 dark:text-white/70 mb-4">24/7 health monitoring</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-2xl font-bold dark:text-white">$89.99</span>
+                        <button class="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shopping Cart Summary -->
+        <div class="max-w-5xl mx-auto border border-gray-300 dark:border-white/30 rounded-2xl p-8 bg-white dark:bg-darkTheme">
+            <h3 class="text-2xl font-semibold mb-6 dark:text-white">Shopping Cart</h3>
+            <div class="space-y-4 mb-6">
+                <div class="flex justify-between items-center p-4 bg-gray-50 dark:bg-white/5 rounded-lg">
+                    <span class="dark:text-white">Subtotal</span>
+                    <span class="font-semibold dark:text-white">$0.00</span>
+                </div>
+                <div class="flex justify-between items-center p-4 bg-gray-50 dark:bg-white/5 rounded-lg">
+                    <span class="dark:text-white">Shipping</span>
+                    <span class="font-semibold dark:text-white">$0.00</span>
+                </div>
+                <div class="flex justify-between items-center p-4 bg-black dark:bg-white text-white dark:text-black rounded-lg">
+                    <span class="font-bold">Total</span>
+                    <span class="text-2xl font-bold">$0.00</span>
+                </div>
+            </div>
+            <button class="w-full px-6 py-4 bg-black dark:bg-white text-white dark:text-black font-bold text-lg rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition">
+                💳 Proceed to Checkout
+            </button>
+        </div>
+    </div>
+
+    <!-- Load banking module first -->
+    <script src="./modules/banking.js"></script>
+    <!-- Main application script -->
     <script src="./script.js"></script>
 
 </body>
