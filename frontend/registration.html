@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IBSAR - Inscription</title>
+    <link rel="stylesheet" href="./output.css">
+    <link rel="stylesheet" href="./input.css">
+    <link rel="shortcut icon" href="./assets/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Ovo&display=swap" rel="stylesheet">
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .listening-indicator {
+            animation: pulse 1s infinite;
+        }
+
+        .voice-status-banner {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(59, 130, 246, 0.95);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: none;
+        }
+
+        .voice-status-banner.active {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .voice-icon {
+            font-size: 2rem;
+            animation: pulse 1.5s infinite;
+        }
+
+        .camera-preview {
+            display: none;
+            position: relative;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .camera-preview.active {
+            display: block;
+        }
+
+        .camera-preview video {
+            width: 100%;
+            border-radius: 20px;
+            background: #000;
+        }
+
+        .captured-photo {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .captured-photo.active {
+            display: block;
+        }
+
+        .captured-photo img {
+            max-width: 300px;
+            border-radius: 20px;
+            border: 4px solid #10b981;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        .form-field {
+            margin-bottom: 30px;
+        }
+
+        .form-field label {
+            display: block;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #374151;
+        }
+
+        .dark .form-field label {
+            color: white;
+        }
+
+        .form-field input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            border: 3px solid #d1d5db;
+            border-radius: 12px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .dark .form-field input {
+            background: #1f2937;
+            color: white;
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        .form-field input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-field input.filled {
+            background: #f0fdf4;
+            border-color: #10b981;
+        }
+
+        .dark .form-field input.filled {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: #10b981;
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .step-item {
+            padding: 12px 25px;
+            background: #e5e7eb;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+
+        .dark .step-item {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .step-item.active {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .step-item.completed {
+            background: #10b981;
+            color: white;
+        }
+
+        .message-box {
+            display: none;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .message-box.active {
+            display: block;
+        }
+
+        .message-box.error {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 3px solid #dc2626;
+        }
+
+        .message-box.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 3px solid #10b981;
+        }
+
+        .submit-section {
+            display: none;
+            margin-top: 40px;
+        }
+
+        .submit-section.active {
+            display: block;
+        }
+
+        canvas {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="font-Outfit leading-8 dark:bg-darkTheme dark:text-white">
+    <div class="fixed top-0 right-0 w-11/12 -z-10 translate-y-[-80%] dark:hidden">
+        <img src="./assets/header-bg-color.png" alt="" class="w-full" />
+    </div>
+
+    <!-- Navigation -->
+    <nav id="navbar" class="w-full fixed px-5 lg:px-8 xl:px-[8%] py-4 flex items-center justify-between z-50">
+        <a href="index.html">
+            <img src="./assets/logo.png" alt="Logo" class="w-28 cursor-pointer mr-14 dark:hidden" />
+            <img src="./assets/logo_dark.png" alt="Logo" class="w-28 cursor-pointer mr-14 hidden dark:block" />
+        </a>
+
+        <div class="flex items-center gap-4">
+            <button onclick="toggleTheme()" title="Toggle theme">
+                <img src="./assets/Moon.png" alt="" class="w-7 dark:hidden" />
+                <img src="./assets/sun_icon.png" alt="" class="w-7 hidden dark:block" />
+            </button>
+        </div>
+    </nav>
+
+    <!-- Voice Status Banner -->
+    <div id="voiceStatus" class="voice-status-banner">
+        <span class="voice-icon">🎤</span>
+        <span id="voiceText">Initialisation...</span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="w-11/12 max-w-4xl mx-auto pt-32 pb-20">
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-Ovo mb-4">Création de Compte IBSAR</h1>
+            <p class="text-xl text-gray-600 dark:text-white/80">L'assistant vocal va vous guider</p>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="progress-steps">
+            <div class="step-item active" id="step1">1. Informations</div>
+            <div class="step-item" id="step2">2. Photo</div>
+            <div class="step-item" id="step3">3. Terminé</div>
+        </div>
+
+        <!-- Start Button (required for browser autoplay policy) -->
+        <div id="startButton" class="text-center mb-8" style="display: none;">
+            <button type="button" onclick="startVoiceRegistration()"
+                class="px-12 py-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold text-2xl rounded-2xl hover:from-blue-600 hover:to-purple-700 transition shadow-xl animate-pulse">
+                🎤 Démarrer l'Assistant Vocal
+            </button>
+            <p class="mt-4 text-gray-500 dark:text-gray-400">Cliquez pour activer la reconnaissance vocale</p>
+        </div>
+
+        <!-- Message Box -->
+        <div id="messageBox" class="message-box"></div>
+
+        <!-- Registration Form -->
+        <div class="bg-white dark:bg-darkTheme/50 rounded-3xl p-8 md:p-12 shadow-xl border border-gray-200 dark:border-white/20">
+            <form id="registerForm">
+                <div class="form-field">
+                    <label for="nom">Nom *</label>
+                    <input type="text" id="nom" required aria-label="Nom de famille">
+                </div>
+
+                <div class="form-field">
+                    <label for="prenom">Prénom *</label>
+                    <input type="text" id="prenom" required aria-label="Prénom">
+                </div>
+
+                <div class="form-field">
+                    <label for="cin">CIN *</label>
+                    <input type="text" id="cin" required aria-label="Numéro de CIN">
+                </div>
+
+                <div class="form-field">
+                    <label for="localisation">Localisation</label>
+                    <input type="text" id="localisation" placeholder="Optionnel" aria-label="Localisation">
+                </div>
+
+                <div class="form-field">
+                    <label for="type_maladie">Type de Handicap</label>
+                    <input type="text" id="type_maladie" placeholder="Ex: Non-voyant, Malvoyant (Optionnel)" aria-label="Type de handicap">
+                </div>
+            </form>
+
+            <!-- Camera Section -->
+            <div id="cameraSection" class="mt-8">
+                <h3 class="text-2xl font-semibold mb-6 text-center">📸 Photo de Profil</h3>
+                
+                <div class="camera-preview" id="cameraPreview">
+                    <video id="videoStream" autoplay playsinline></video>
+                </div>
+
+                <canvas id="photoCanvas"></canvas>
+
+                <div class="captured-photo" id="capturedPhoto">
+                    <p class="text-green-600 font-bold text-xl mb-4">✓ Photo capturée avec succès!</p>
+                    <img id="capturedImg" src="" alt="Photo capturée">
+                </div>
+
+                <div id="cameraButtons" class="flex gap-4 justify-center mt-6" style="display: none;">
+                    <button type="button" onclick="capturePhoto()" id="captureBtn"
+                        class="px-8 py-4 bg-green-600 text-white font-bold text-lg rounded-xl hover:bg-green-700 transition">
+                        📷 Capturer
+                    </button>
+                    <button type="button" onclick="retakePhoto()" id="retakeBtn" style="display:none;"
+                        class="px-8 py-4 bg-gray-600 text-white font-bold text-lg rounded-xl hover:bg-gray-700 transition">
+                        🔄 Reprendre
+                    </button>
+                </div>
+            </div>
+
+            <!-- Submit Section -->
+            <div id="submitSection" class="submit-section">
+                <button type="button" onclick="submitRegistration()"
+                    class="w-full px-8 py-5 bg-black dark:bg-white text-white dark:text-black font-bold text-xl rounded-xl hover:bg-gray-800 dark:hover:bg-gray-200 transition">
+                    ✓ Créer mon Compte
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const BACKEND_URL = 'http://localhost:8000/api/auth/register/';
+
+        // Web Speech API pour la reconnaissance vocale (gratuite, pas de clé requise)
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        // State
+        let currentStep = 0;
+        let videoStream = null;
+        let capturedImage = null;
+
+        const questions = [
+            { field: 'nom', question: 'Bienvenue sur IBSAR. Je vais vous aider à créer votre compte. Commençons. Quel est votre nom de famille?' },
+            { field: 'prenom', question: 'Parfait. Quel est votre prénom?' },
+            { field: 'cin', question: 'Très bien. Maintenant, quel est votre numéro de CIN?' },
+            { field: 'localisation', question: 'Quelle est votre localisation? Dites "passer" si vous préférez ne pas répondre.' },
+            { field: 'type_maladie', question: 'Quel est votre type de handicap? Vous pouvez dire "non voyant" ou "malvoyant", ou dire "passer" pour ne pas répondre.' }
+        ];
+
+        // Theme toggle function
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', 
+                document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+            );
+        }
+
+        // Load saved theme
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        }
+
+        // Speech Synthesis
+        function speak(text, callback) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'fr-FR';
+            utterance.rate = 0.85;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            utterance.onend = callback || (() => {});
+            speechSynthesis.cancel();
+            speechSynthesis.speak(utterance);
+        }
+
+        // Show message
+        function showMessage(text, isError = false) {
+            const msgBox = document.getElementById('messageBox');
+            msgBox.textContent = text;
+            msgBox.className = 'message-box active ' + (isError ? 'error' : 'success');
+            setTimeout(() => msgBox.classList.remove('active'), 5000);
+        }
+
+        // Update voice status
+        function updateVoiceStatus(text, show = true) {
+            const status = document.getElementById('voiceStatus');
+            const textEl = document.getElementById('voiceText');
+            textEl.textContent = text;
+            if (show) {
+                status.classList.add('active');
+            } else {
+                status.classList.remove('active');
+            }
+        }
+
+        // Auto-start on page load - show start button instead (browser autoplay policy)
+        window.addEventListener('load', () => {
+            // Show start button - browser requires user interaction before speech
+            document.getElementById('startButton').style.display = 'block';
+            updateVoiceStatus('Cliquez sur "Démarrer" pour commencer');
+        });
+
+        // Start voice registration (called by button click)
+        function startVoiceRegistration() {
+            document.getElementById('startButton').style.display = 'none';
+            currentStep = 0;
+            updateVoiceStatus('Démarrage de l\'inscription...');
+            
+            speak('Bienvenue sur IBSAR. Je vais vous guider pour créer votre compte. Répondez à mes questions à voix haute.', () => {
+                setTimeout(() => askQuestion(), 1500);
+            });
+        }
+
+        // Ask current question
+        function askQuestion() {
+            if (currentStep >= questions.length) {
+                // Move to photo capture
+                document.getElementById('step1').classList.add('completed');
+                document.getElementById('step2').classList.add('active');
+                
+                updateVoiceStatus('Préparation de la caméra...');
+                
+                speak('Excellent! Maintenant nous allons prendre votre photo pour la reconnaissance faciale.', () => {
+                    setTimeout(() => startCamera(), 1500);
+                });
+                return;
+            }
+
+            const q = questions[currentStep];
+            updateVoiceStatus(q.question);
+            
+            speak(q.question, () => {
+                setTimeout(() => listenForAnswer(), 800);
+            });
+        }
+
+        // Listen for answer using Web Speech API
+        async function listenForAnswer() {
+            if (!SpeechRecognition) {
+                showMessage('Votre navigateur ne supporte pas la reconnaissance vocale. Utilisez Chrome ou Edge.', true);
+                speak('Erreur: votre navigateur ne supporte pas la reconnaissance vocale.');
+                return;
+            }
+
+            try {
+                const recognition = new SpeechRecognition();
+                recognition.lang = 'fr-FR';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+
+                let hasResult = false;
+
+                updateVoiceStatus('🎤 Je vous écoute... Parlez maintenant');
+
+                recognition.onresult = (event) => {
+                    hasResult = true;
+                    const transcript = event.results[0][0].transcript;
+                    console.log('Transcript:', transcript);
+                    processAnswer(transcript);
+                };
+
+                recognition.onerror = (event) => {
+                    hasResult = true;
+                    console.error('Speech recognition error:', event.error);
+                    if (event.error === 'no-speech') {
+                        speak('Je n\'ai pas entendu. Pouvez-vous répéter?', () => {
+                            setTimeout(() => listenForAnswer(), 1000);
+                        });
+                    } else if (event.error === 'aborted') {
+                        // Aborted - don't retry
+                        console.log('Recognition aborted');
+                    } else {
+                        speak('Désolé, je n\'ai pas bien compris. Pouvez-vous répéter?', () => {
+                            setTimeout(() => listenForAnswer(), 1000);
+                        });
+                    }
+                };
+
+                recognition.onend = () => {
+                    // If ended without result or error, retry
+                    if (!hasResult) {
+                        console.log('Recognition ended without result, retrying...');
+                        setTimeout(() => listenForAnswer(), 500);
+                    }
+                };
+
+                recognition.start();
+
+            } catch (error) {
+                console.error('Speech recognition error:', error);
+                showMessage('Erreur de reconnaissance vocale.', true);
+                speak('Erreur de reconnaissance vocale. Veuillez réessayer.');
+            }
+        }
+
+        // Process answer
+        function processAnswer(answer) {
+            const q = questions[currentStep];
+            const field = document.getElementById(q.field);
+            
+            console.log('Answer received:', answer);
+            
+            // Check if user wants to skip
+            const skipWords = ['passer', 'skip', 'suivant', 'next', 'rien', 'sauter', 'pas de', 'non'];
+            if (skipWords.some(word => answer.toLowerCase().includes(word))) {
+                speak('D\'accord, je passe à la question suivante.', () => {
+                    currentStep++;
+                    setTimeout(() => askQuestion(), 1500);
+                });
+                return;
+            }
+            
+            // Fill field
+            field.value = answer;
+            field.classList.add('filled');
+            
+            updateVoiceStatus('✓ Réponse enregistrée');
+            speak('Parfait, c\'est noté.', () => {
+                currentStep++;
+                setTimeout(() => askQuestion(), 1500);
+            });
+        }
+
+        // Camera functions
+        async function startCamera() {
+            document.getElementById('cameraPreview').classList.add('active');
+            document.getElementById('cameraButtons').style.display = 'flex';
+            updateVoiceStatus('📸 Caméra activée');
+            
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user', width: 640, height: 480 } 
+                });
+                document.getElementById('videoStream').srcObject = videoStream;
+                
+                speak('La caméra est activée. Positionnez votre visage bien en face et dites "capturer" ou cliquez sur le bouton.');
+                
+                // Listen for voice command to capture
+                listenForCaptureCommand();
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                showMessage('Impossible d\'accéder à la caméra', true);
+                speak('Erreur d\'accès à la caméra. Veuillez autoriser l\'accès.');
+            }
+        }
+
+        // Listen for capture voice command using Web Speech API
+        async function listenForCaptureCommand() {
+            if (!SpeechRecognition || !videoStream) return;
+
+            try {
+                const recognition = new SpeechRecognition();
+                recognition.lang = 'fr-FR';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript.toLowerCase();
+                    console.log('Capture command:', transcript);
+                    
+                    if (transcript.includes('capturer') || 
+                        transcript.includes('photo') ||
+                        transcript.includes('prendre')) {
+                        capturePhoto();
+                    } else {
+                        // Listen again
+                        setTimeout(() => listenForCaptureCommand(), 500);
+                    }
+                };
+
+                recognition.onerror = () => {
+                    // Listen again on error
+                    setTimeout(() => listenForCaptureCommand(), 500);
+                };
+
+                recognition.start();
+                
+            } catch (error) {
+                console.error('Voice command error:', error);
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('videoStream');
+            const canvas = document.getElementById('photoCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            capturedImage = canvas.toDataURL('image/jpeg', 0.9);
+            
+            document.getElementById('capturedImg').src = capturedImage;
+            document.getElementById('capturedPhoto').classList.add('active');
+            document.getElementById('cameraPreview').classList.remove('active');
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('retakeBtn').style.display = 'block';
+            
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+            
+            document.getElementById('step2').classList.add('completed');
+            document.getElementById('step3').classList.add('active');
+            document.getElementById('submitSection').classList.add('active');
+            
+            updateVoiceStatus('✓ Photo enregistrée');
+            speak('Photo capturée avec succès! Votre inscription est complète. Dites "créer mon compte" ou cliquez sur le bouton pour finaliser.');
+        }
+
+        function retakePhoto() {
+            document.getElementById('capturedPhoto').classList.remove('active');
+            document.getElementById('submitSection').classList.remove('active');
+            document.getElementById('captureBtn').style.display = 'block';
+            document.getElementById('retakeBtn').style.display = 'none';
+            capturedImage = null;
+            
+            speak('Très bien, je reprends la photo.');
+            startCamera();
+        }
+
+        // Submit registration
+        async function submitRegistration() {
+            const data = {
+                nom: document.getElementById('nom').value,
+                prenom: document.getElementById('prenom').value,
+                cin: document.getElementById('cin').value,
+                localisation: document.getElementById('localisation').value || '',
+                type_maladie: document.getElementById('type_maladie').value || '',
+                face_image: capturedImage
+            };
+            
+            if (!data.nom || !data.prenom || !data.cin || !capturedImage) {
+                showMessage('Veuillez remplir tous les champs obligatoires et prendre une photo', true);
+                speak('Attention, certains champs obligatoires sont manquants ou la photo n\'a pas été prise.');
+                return;
+            }
+            
+            updateVoiceStatus('⏳ Création du compte en cours...');
+            
+            try {
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage('✓ Compte créé avec succès!');
+                    updateVoiceStatus('✓ Compte créé!', false);
+                    
+                    speak('Félicitations! Votre compte a été créé avec succès. Vous allez être redirigé vers la page de connexion.', () => {
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 3000);
+                    });
+                } else {
+                    const errorMsg = result.error || 'Erreur lors de la création du compte';
+                    showMessage(errorMsg, true);
+                    updateVoiceStatus('❌ Erreur');
+                    speak('Erreur: ' + errorMsg);
+                }
+            } catch (error) {
+                console.error('Submit error:', error);
+                showMessage('Erreur de connexion au serveur', true);
+                updateVoiceStatus('❌ Erreur serveur');
+                speak('Erreur de connexion au serveur. Veuillez réessayer.');
+            }
+        }
+    </script>
+
+</body>
+</html>

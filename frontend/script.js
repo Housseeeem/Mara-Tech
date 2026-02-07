@@ -17,6 +17,18 @@ document.addEventListener('DOMContentLoaded', () => {
         currentLangText.textContent = savedLang.toUpperCase();
     }
 
+    // Load accessibility preference - default to moderate accessibility mode
+    const savedAccessibility = localStorage.getItem('accessibilityMode') || 'medium';
+    if (savedAccessibility === 'medium') {
+        applyMediumAccessibilityMode();
+        setAccessibilityPanelVisible(true);
+    } else if (savedAccessibility === 'extreme') {
+        applyAccessibilityMode();
+        setAccessibilityPanelVisible(true);
+    } else if (savedAccessibility === 'normal') {
+        disableAccessibilityMode();
+    }
+
     // Pre-load voices
     if ('speechSynthesis' in window) {
         speechSynthesis.getVoices();
@@ -38,7 +50,7 @@ function showStartPrompt() {
     }
 
     const handler = () => {
-        console.log('Click detected - launching assistant directly');
+        console.log('Click detected - launching language selection first');
         document.removeEventListener('click', handler);
         document.removeEventListener('touchstart', handler);
 
@@ -50,37 +62,14 @@ function showStartPrompt() {
 
         visionAssistantActive = true;
         visionAssistantRetries = 0;
-        assistantPhase = 'vision';
-
-        const visionDone = sessionStorage.getItem('visionAssistantDone');
-        if (visionDone) {
-            setVisionStatus(t('speech_voice_nav'));
-            // Use speakText with delay (audio already unlocked by silent utterance above)
-            speakText(t('speech_welcome') + '. ' + t('speech_features_available'), {
-                onend: () => {
-                    assistantPhase = 'features';
-                    listenForFeatureChoice();
-                }
-            });
-            return;
-        }
+        assistantPhase = 'language';
 
         setVisionStatus('Assistant vocal actif.');
-        // Use speakText with delay (audio already unlocked by silent utterance above)
-        speakText(t('speech_welcome') + '. ' + t('speech_open_camera'), {
+        // Always ask for language preference in French first
+        speakTextInFrench('Bienvenue. Quelle langue préférez-vous? Dites français, anglais ou arabe.', {
             onend: () => {
-                console.log('Welcome message ended, listening for response');
-                listenForAssistantCommand({
-                    yesWords: getYesWords(),
-                    noWords: getNoWords(),
-                    promptText: t('speech_say_yes_no'),
-                    onYes: () => handleAssistantOpenCamera(),
-                    onNo: () => {
-                        sessionStorage.setItem('visionAssistantDone', 'true');
-                        endVisionAssistant(t('speech_vision_passed'));
-                        setTimeout(() => startFeatureAssistant(), 800);
-                    }
-                });
+                console.log('Language question ended, listening for language choice');
+                listenForLanguageChoice();
             }
         });
     };
@@ -221,7 +210,7 @@ let hasLowVision = false;
 let visionAssistantActive = false;
 let visionAssistantRetries = 0;
 const visionAssistantMaxRetries = 2;
-let assistantPhase = 'idle'; // 'idle' | 'vision' | 'features' | 'section'
+let assistantPhase = 'idle'; // 'idle' | 'language' | 'vision' | 'features' | 'section'
 
 function setVisionStatus(message) {
     const status = document.getElementById('visionStatus');
@@ -258,6 +247,20 @@ function getNoWords() {
         ar: ['لا', 'إلغاء', 'توقف', 'تخطي']
     };
     return noWords[lang] || noWords.fr;
+}
+
+/**
+ * Get close/fermer keywords for current language
+ * @returns {Array<string>} - Array of close keywords
+ */
+function getCloseWords() {
+    const lang = currentLanguage || 'fr';
+    const words = {
+        fr: ['fermer', 'close', 'arrete', 'arreter', 'ferme'],
+        en: ['close', 'shut', 'stop', 'end'],
+        ar: ['إغلاق', 'أغلق', 'توقف', 'أوقف']
+    };
+    return words[lang] || words.fr;
 }
 
 /**
@@ -363,6 +366,196 @@ function speakText(text, options = {}) {
             console.error('Error calling speechSynthesis.speak:', err);
         }
     }, 150);
+}
+
+/**
+ * Speak text always in French (for language selection prompt)
+ */
+function speakTextInFrench(text, options = {}) {
+    if (!('speechSynthesis' in window)) {
+        console.warn('speechSynthesis not available');
+        return;
+    }
+    
+    const { rate = 0.95, onend = null } = options;
+    
+    speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'fr-FR'; // Always French
+    utterance.rate = rate;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    console.log(`Speaking in French: ${text}`);
+    
+    if (onend) {
+        utterance.onend = () => {
+            console.log('French speech ended successfully');
+            onend();
+        };
+    }
+    
+    utterance.onerror = (event) => {
+        console.error('French speech synthesis error:', event.error);
+        if (onend && event.error !== 'canceled') {
+            onend();
+        }
+    };
+    
+    setTimeout(() => {
+        try {
+            speechSynthesis.speak(utterance);
+        } catch (err) {
+            console.error('Error calling speechSynthesis.speak:', err);
+        }
+    }, 150);
+}
+
+/**
+ * Listen for language choice (français, anglais, arabe)
+ */
+function listenForLanguageChoice() {
+    console.log('listenForLanguageChoice called');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.error('SpeechRecognition not available');
+        setVisionStatus('Reconnaissance vocale non supportée sur ce navigateur.');
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR'; // Listen in French for language keywords
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.continuous = false;
+
+    let gotResult = false;
+    let didTimeout = false;
+
+    setVisionStatus('Dites français, anglais ou arabe...');
+    console.log('Starting language choice recognition');
+    recognition.start();
+
+    const safetyTimer = setTimeout(() => {
+        didTimeout = true;
+        try {
+            recognition.stop();
+        } catch (err) {
+            console.warn('Recognition stop failed:', err);
+        }
+    }, 6000);
+
+    recognition.onstart = () => {
+        console.log('Language recognition started');
+    };
+
+    recognition.onresult = (event) => {
+        gotResult = true;
+        clearTimeout(safetyTimer);
+        const transcript = event.results[0][0].transcript;
+        const normalizedTranscript = normalizeSpeechText(transcript);
+        console.log('Language choice result:', { transcript, normalizedTranscript });
+        
+        // Check which language was mentioned
+        let selectedLang = null;
+        if (normalizedTranscript.includes('francais') || normalizedTranscript.includes('français')) {
+            selectedLang = 'fr';
+        } else if (normalizedTranscript.includes('anglais') || normalizedTranscript.includes('english')) {
+            selectedLang = 'en';
+        } else if (normalizedTranscript.includes('arabe') || normalizedTranscript.includes('arabic')) {
+            selectedLang = 'ar';
+        }
+
+        if (selectedLang) {
+            console.log('Language selected:', selectedLang);
+            // Set the language
+            changeLanguage(selectedLang);
+            
+            // Confirm in French
+            const langNames = { fr: 'français', en: 'anglais', ar: 'arabe' };
+            speakTextInFrench(`Langue définie en ${langNames[selectedLang]}.`, {
+                onend: () => {
+                    // Now continue with vision assistant flow
+                    continueToVisionAssistant();
+                }
+            });
+            return;
+        }
+
+        // If not understood, retry
+        visionAssistantRetries += 1;
+        if (visionAssistantRetries <= visionAssistantMaxRetries) {
+            console.log('Language not understood, retrying');
+            speakTextInFrench('Je n\'ai pas compris. Dites français, anglais ou arabe.', {
+                onend: () => listenForLanguageChoice()
+            });
+        } else {
+            console.log('Max retries reached, defaulting to French');
+            changeLanguage('fr');
+            continueToVisionAssistant();
+        }
+    };
+
+    recognition.onerror = (event) => {
+        clearTimeout(safetyTimer);
+        console.error('Language recognition error:', event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            setVisionStatus('Micro non autorisé.');
+        } else {
+            setVisionStatus(`Erreur micro: ${event.error}`);
+        }
+        // Default to French and continue
+        changeLanguage('fr');
+        continueToVisionAssistant();
+    };
+
+    recognition.onend = () => {
+        clearTimeout(safetyTimer);
+        if (!gotResult) {
+            console.log('Language recognition ended without result');
+            visionAssistantRetries += 1;
+            if (visionAssistantRetries <= visionAssistantMaxRetries) {
+                speakTextInFrench('Je n\'ai rien entendu. Dites français, anglais ou arabe.', {
+                    onend: () => listenForLanguageChoice()
+                });
+            } else {
+                // Default to French and continue
+                changeLanguage('fr');
+                continueToVisionAssistant();
+            }
+        }
+    };
+}
+
+/**
+ * Continue to vision assistant after language selection
+ * Always go through vision module before features
+ */
+function continueToVisionAssistant() {
+    console.log('Continuing to vision assistant');
+    visionAssistantRetries = 0; // Reset retries for next phase
+    assistantPhase = 'vision';
+
+    // Always ask about vision (removed the visionDone check)
+    setVisionStatus('Assistant vocal actif.');
+    speakText(t('speech_welcome') + '. ' + t('speech_open_camera'), {
+        onend: () => {
+            console.log('Welcome message ended, listening for response');
+            listenForAssistantCommand({
+                yesWords: getYesWords(),
+                noWords: getNoWords(),
+                promptText: t('speech_say_yes_no'),
+                recognitionLang: getRecognitionLang(),
+                onYes: () => handleAssistantOpenCamera(),
+                onNo: () => {
+                    sessionStorage.setItem('visionAssistantDone', 'true');
+                    endVisionAssistant(t('speech_vision_passed'));
+                    setTimeout(() => startFeatureAssistant(), 800);
+                }
+            });
+        }
+    });
 }
 
 async function startCamera() {
@@ -476,34 +669,36 @@ async function checkVision(options = {}) {
         hasLowVision = data.score < 70;
         
         if (assistantMode) {
-            const spokenLabel = data.score >= 70 ? 'vision normale' : (data.score >= 40 ? 'vision faible' : 'vision tres faible');
-            const message = `Resultat: ${spokenLabel}. Dites fermer pour fermer la camera ou non pour la garder ouverte.`;
+            const spokenLabel = data.score >= 70 ? t('vision_normal').split('.')[0] : (data.score >= 40 ? t('vision_low').split('.')[0] : t('vision_very_low').split('.')[0]);
+            const message = `${t('vision_analysis_result')} ${spokenLabel}. ${t('vision_say_close_or_keep')}`;
             speakText(message, {
                 cancelPrevious: true,
                 onend: () => {
                     listenForAssistantCommand({
-                        yesWords: ['fermer', 'close', 'arrete', 'arreter'],
-                        noWords: ['non', 'laisser', 'garder'],
-                        promptText: 'Dites fermer pour fermer la camera ou non pour la garder ouverte.',
+                        yesWords: getCloseWords(),
+                        noWords: getNoWords(),
+                        promptText: t('vision_say_close_or_keep'),
+                        recognitionLang: getRecognitionLang(),
                         onYes: () => {
                             stopCamera();
-                            const scoreLabel = visionScore >= 70 ? 'vision normale' : (visionScore >= 40 ? 'vision faible' : 'vision tres faible');
-                            const confirmMessage = `La camera est fermee. Confirmez-vous le resultat: ${scoreLabel}, score ${visionScore}? Dites oui ou non.`;
+                            const scoreLabel = visionScore >= 70 ? t('vision_normal').split('.')[0] : (visionScore >= 40 ? t('vision_low').split('.')[0] : t('vision_very_low').split('.')[0]);
+                            const confirmMessage = `${t('vision_camera_closed')} ${t('vision_confirm_result')} ${scoreLabel}, score ${visionScore}. ${t('vision_say_yes_confirm')}`;
                             speakText(confirmMessage, {
                                 cancelPrevious: true,
                                 onend: () => {
                                     listenForAssistantCommand({
-                                        yesWords: ['oui', 'ok', 'daccord', 'accord', 'confirme', 'confirmer'],
-                                        noWords: ['non', 'pas', 'refuse', 'annuler'],
-                                        promptText: 'Dites oui pour confirmer le score ou non pour annuler.',
+                                        yesWords: getYesWords(),
+                                        noWords: getNoWords(),
+                                        promptText: t('vision_say_yes_confirm'),
+                                        recognitionLang: getRecognitionLang(),
                                         onYes: () => {
                                             sessionStorage.setItem('visionAssistantDone', 'true');
-                                            endVisionAssistant('Score confirme.');
+                                            endVisionAssistant(t('vision_result_confirmed'));
                                             setTimeout(() => startFeatureAssistant(), 1000);
                                         },
                                         onNo: () => {
                                             sessionStorage.setItem('visionAssistantDone', 'true');
-                                            endVisionAssistant('Score non confirme.');
+                                            endVisionAssistant(t('vision_result_not_confirmed'));
                                             setTimeout(() => startFeatureAssistant(), 1000);
                                         }
                                     });
@@ -512,7 +707,7 @@ async function checkVision(options = {}) {
                         },
                         onNo: () => {
                             sessionStorage.setItem('visionAssistantDone', 'true');
-                            endVisionAssistant('Camera reste ouverte.');
+                            endVisionAssistant(t('vision_camera_open'));
                             // Transition to feature assistant
                             setTimeout(() => startFeatureAssistant(), 1000);
                         }
@@ -553,7 +748,7 @@ function startVisionVoiceAssistant(forceStart = false) {
     visionAssistantActive = true;
     visionAssistantRetries = 0;
     assistantPhase = 'vision';
-    const message = 'Bienvenue. Voulez-vous ouvrir la camera pour verifier votre vision? Dites oui ou non.';
+    const message = t('speech_welcome') + '. ' + t('speech_open_camera');
     console.log('Setting status and speaking:', message);
     setVisionStatus('Assistant vocal actif.');
     speakText(message, {
@@ -561,14 +756,15 @@ function startVisionVoiceAssistant(forceStart = false) {
         onend: () => {
             console.log('Speech ended, listening for command');
             listenForAssistantCommand({
-                yesWords: ['oui', 'ouvre', 'ouvrir', 'camera', 'cam', 'caméra'],
-                noWords: ['non', 'annuler', 'stop', 'passer'],
-                promptText: 'Dites oui pour ouvrir la camera ou non pour passer.',
+                yesWords: getYesWords(),
+                noWords: getNoWords(),
+                promptText: t('speech_say_yes_no'),
+                recognitionLang: getRecognitionLang(),
                 onYes: () => handleAssistantOpenCamera(),
                 onNo: () => {
                     // Vision skipped, mark done and move to features
                     sessionStorage.setItem('visionAssistantDone', 'true');
-                    endVisionAssistant('Vision passee.');
+                    endVisionAssistant(t('speech_vision_passed'));
                     setTimeout(() => startFeatureAssistant(), 800);
                 }
             });
@@ -577,25 +773,25 @@ function startVisionVoiceAssistant(forceStart = false) {
 }
 
 async function handleAssistantOpenCamera() {
-    setVisionStatus('Ouverture de la camera...');
+    setVisionStatus(t('vision_opening_camera'));
     const ok = await startCamera();
     if (!ok) {
-        endVisionAssistant('Impossible d\'ouvrir la camera.');
+        endVisionAssistant(t('vision_cannot_open'));
         setTimeout(() => startFeatureAssistant(), 800);
         return;
     }
-    const message = 'Camera ouverte. Dites oui pour analyser votre vision.';
-    speakText(message, {
+    speakText(t('vision_camera_opened'), {
         cancelPrevious: true,
         onend: () => {
             listenForAssistantCommand({
-                yesWords: ['oui', 'ok', 'daccord', 'accord', 'analyser', 'analyse', 'vision'],
-                noWords: ['non', 'annuler', 'stop', 'passer'],
-                promptText: 'Dites oui pour lancer l\'analyse.',
+                yesWords: getYesWords(),
+                noWords: getNoWords(),
+                promptText: t('vision_say_yes_analyze'),
+                recognitionLang: getRecognitionLang(),
                 onYes: () => checkVision({ assistantMode: true }),
                 onNo: () => {
                     sessionStorage.setItem('visionAssistantDone', 'true');
-                    endVisionAssistant('Analyse passee.');
+                    endVisionAssistant(t('vision_analysis_skipped'));
                     setTimeout(() => startFeatureAssistant(), 800);
                 }
             });
@@ -1281,40 +1477,19 @@ function applyMediumAccessibilityMode() {
     document.body.classList.remove('accessibility-mode');
     document.body.classList.add('medium-accessibility-mode');
     
-    // Show confirmation message
-    const announcement = new SpeechSynthesisUtterance('Mode accessibilité modéré activé. Les éléments ont été légèrement agrandis.');
-    announcement.lang = 'fr-FR';
-    announcement.rate = 0.9;
-    speechSynthesis.speak(announcement);
+    // Save preference to localStorage
+    localStorage.setItem('accessibilityMode', 'medium');
     
-    // Show visual confirmation
-    const confirmationDiv = document.createElement('div');
-    confirmationDiv.style.cssText = `
-        position: fixed;
-        top: 100px;
-        right: 30px;
-        padding: 20px;
-        background: #fff3cd;
-        border: 3px solid #ff9800;
-        border-radius: 8px;
-        z-index: 1000;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        font-size: 1.05em;
-        font-weight: bold;
-        max-width: 400px;
-    `;
-    confirmationDiv.innerHTML = `
-        ⚠️ Mode accessibilité modéré activé<br>
-        <span style="font-size: 0.9em; font-weight: normal; margin-top: 10px; display: block;">
-            Les éléments ont été modérément agrandis pour une meilleure lisibilité.
-        </span>
-    `;
-    document.body.appendChild(confirmationDiv);
+    // Show confirmation message (only if not during initial page load)
+    if (document.body.classList.contains('medium-accessibility-mode') && localStorage.getItem('accessibilityMode') === 'medium') {
+        const announcement = new SpeechSynthesisUtterance('Mode accessibilité modéré activé. Les éléments ont été légèrement agrandis.');
+        announcement.lang = 'fr-FR';
+        announcement.rate = 0.9;
+        if (speechSynthesis && speechSynthesis.pending === false) {
+            speechSynthesis.speak(announcement);
+        }
+    }
     
-    // Remove confirmation after 5 seconds
-    setTimeout(() => {
-        confirmationDiv.remove();
-    }, 5000);
 }
 
 function applyAccessibilityMode() {
@@ -1442,40 +1617,16 @@ function applyAccessibilityMode() {
     document.body.classList.remove('medium-accessibility-mode');
     document.body.classList.add('accessibility-mode');
     
+    // Save preference to localStorage
+    localStorage.setItem('accessibilityMode', 'extreme');
+    
     // Show confirmation message
     const announcement = new SpeechSynthesisUtterance('Mode accessibilité activé. Les textes ont été agrandis et les contrastes améliorés.');
     announcement.lang = 'fr-FR';
     announcement.rate = 0.9;
-    speechSynthesis.speak(announcement);
-    
-    // Show visual confirmation
-    const confirmationDiv = document.createElement('div');
-    confirmationDiv.style.cssText = `
-        position: fixed;
-        top: 100px;
-        right: 30px;
-        padding: 20px;
-        background: #d4edda;
-        border: 3px solid #28a745;
-        border-radius: 8px;
-        z-index: 1000;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        font-size: 1.1em;
-        font-weight: bold;
-        max-width: 400px;
-    `;
-    confirmationDiv.innerHTML = `
-        ✓ Mode accessibilité activé<br>
-        <span style="font-size: 0.9em; font-weight: normal; margin-top: 10px; display: block;">
-            Les textes ont été agrandis et les contrastes améliorés pour une meilleure lisibilité.
-        </span>
-    `;
-    document.body.appendChild(confirmationDiv);
-    
-    // Remove confirmation after 5 seconds
-    setTimeout(() => {
-        confirmationDiv.remove();
-    }, 5000);
+    if (speechSynthesis && speechSynthesis.pending === false) {
+        speechSynthesis.speak(announcement);
+    }
 }
 
 // Function to toggle accessibility mode on demand
@@ -1500,4 +1651,7 @@ function disableAccessibilityMode() {
     document.body.classList.remove('medium-accessibility-mode');
     setAccessibilityPanelVisible(false);
     updateAccessibilityToggleState();
+    
+    // Save preference to localStorage
+    localStorage.setItem('accessibilityMode', 'normal');
 }
