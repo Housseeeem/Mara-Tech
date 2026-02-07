@@ -11,6 +11,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Ovo&display=swap" rel="stylesheet">
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .listening-indicator {
+            animation: pulse 1s infinite;
+        }
+    </style>
 </head>
 
 <body class="font-Outfit leading-8 dark:bg-darkTheme dark:text-white">
@@ -158,6 +167,34 @@
                     </li>
                 </ul>
             </div>
+        </div>
+    </div>
+
+    <!-- ----- camera section ------ -->
+    <div id="camera" class="w-full px-[12%] py-10 scroll-mt-20 bg-gray-50 dark:bg-darkTheme/50">
+        <h4 class="text-center mb-2 text-lg font-Ovo">Multimedia</h4>
+        <h2 class="text-center text-5xl font-Ovo mb-12">Camera Access</h2>
+        <div class="flex flex-col items-center gap-6 max-w-2xl mx-auto">
+            <div class="w-full max-w-lg">
+                <video id="videoStream" width="100%" height="auto" 
+                    class="rounded-lg border-2 border-gray-300 dark:border-white/30 bg-black"
+                    autoplay playsinline></video>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="startCamera()" id="startBtn"
+                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200">
+                    Start Camera
+                </button>
+                <button onclick="checkVision()" id="checkBtn" disabled
+                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200">
+                    Check Vision
+                </button>
+                <button onclick="stopCamera()" id="stopBtn" style="display:none;"
+                    class="px-8 py-3 border-2 border-red-600 rounded-sm bg-red-600 text-white font-bold hover:bg-red-700 transition">
+                    Stop Camera
+                </button>
+            </div>
+            <p id="visionStatus" class="text-sm text-gray-700 dark:text-white/80"></p>
         </div>
     </div>
 
