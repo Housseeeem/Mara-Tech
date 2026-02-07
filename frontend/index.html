@@ -46,34 +46,54 @@
         <img src="./assets/header-bg-color.png" alt="" class="w-full" />
     </div>
 
-    <nav id="navbar" class="w-full fixed px-5 lg:px-8 xl:px-[8%] py-4 flex items-center justify-between z-50">
+    <nav id="navbar" class="w-full fixed px-5 lg:px-8 xl:px-[8%] py-4 flex items-center justify-between z-50" aria-label="Primary">
         <p class="bg-white bg-opacity-50 backdrop-blur-lg shadow-sm dark:bg-darkTheme dark:shadow-white/20 sr-only">
             Hidden</p>
-        <a href="#!">
-            <img src="./assets/logo.png" alt="Logo" class="w-28 cursor-pointer mr-14 dark:hidden" />
-            <img src="./assets/logo_dark.png" alt="Logo" class="w-28 cursor-pointer mr-14 hidden dark:block" />
+        <a href="#top">
+            <img src="./assets/logo.png" alt="Mara Tech logo" class="w-28 cursor-pointer mr-14 dark:hidden" />
+            <img src="./assets/logo_dark.png" alt="Mara Tech logo (dark)" class="w-28 cursor-pointer mr-14 hidden dark:block" />
         </a>
 
         <ul id="navLink"
             class="hidden md:flex items-center gap-6 lg:gap-8 rounded-full px-12 py-3 bg-white shadow-sm bg-opacity-50 font-Ovo dark:border dark:border-white/30 dark:bg-transparent ">
-            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#top">Home</a></li>
-            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#about">About us</a></li>
-            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#banking">Banking</a></li>
-            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#shopping">Shopping</a></li>
+            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#top" data-i18n="nav_home">Home</a></li>
+            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#about" data-i18n="nav_about">About us</a></li>
+            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#banking" data-i18n="nav_banking">Banking</a></li>
+            <li><a class='font-semibold text-3xl hover:text-gray-500 dark:hover:text-gray-300 transition' href="#shopping" data-i18n="nav_shopping">Shopping</a></li>
         </ul>
 
         <div class="flex items-center gap-4">
-            <button onclick="toggleTheme()" title="Toggle theme">
+            <button id="themeToggleBtn" type="button" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle color theme" aria-pressed="false">
                 <img src="./assets/Moon.png" alt="" class="w-7 dark:hidden" />
                 <img src="./assets/sun_icon.png" alt="" class="w-7 hidden dark:block" />
             </button>
 
-            <button onclick="startVoiceNavigation()" title="Voice Navigation" style="background: none; border: none; cursor: pointer; display: flex; align-items: center;">
-                <span style="font-size: 1.5em;">🎤</span>
-            </button>
+            <!-- Language Selector -->
+            <div class="relative" id="languageSelector">
+                <button id="langToggleBtn" type="button" onclick="toggleLanguageMenu()" 
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-100 dark:border-white/30 dark:hover:bg-darkHover transition"
+                    aria-label="Select language" aria-haspopup="true" aria-expanded="false">
+                    <span style="font-size: 1.2em;">🌐</span>
+                    <span id="currentLangText" class="text-sm font-semibold hidden sm:inline">FR</span>
+                </button>
+                <div id="languageMenu" class="hidden absolute right-0 mt-2 w-40 bg-white dark:bg-darkTheme border border-gray-300 dark:border-white/30 rounded-lg shadow-lg overflow-hidden z-50">
+                    <button onclick="changeLanguage('fr')" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-darkHover transition flex items-center gap-2">
+                        <span>🇫🇷</span>
+                        <span>Français</span>
+                    </button>
+                    <button onclick="changeLanguage('en')" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-darkHover transition flex items-center gap-2">
+                        <span>🇬🇧</span>
+                        <span>English</span>
+                    </button>
+                    <button onclick="changeLanguage('ar')" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-darkHover transition flex items-center gap-2">
+                        <span>🇸🇦</span>
+                        <span>العربية</span>
+                    </button>
+                </div>
+            </div>
 
-            <button onclick="toggleAccessibilityMode()" title="Toggle Accessibility Mode" style="background: none; border: none; cursor: pointer; display: flex; align-items: center;">
-                <span style="font-size: 1.5em; filter: grayscale(100%);">♿</span>
+            <button id="voiceNavBtn" type="button" onclick="startVoiceNavigation()" title="Voice Navigation" aria-label="Start voice navigation" style="background: none; border: none; cursor: pointer; display: flex; align-items: center;">
+                <span style="font-size: 1.5em;">🎤</span>
             </button>
 
             <!-- <a href="#contact"
@@ -83,49 +103,129 @@
                 <img src="./assets/arrow-icon-dark.png" alt="" class="w-3 hidden dark:block" />
             </a> -->
 
-            <button class="block md:hidden ml-3" onclick="openMenu()">
+            <button id="mobileMenuBtn" class="block md:hidden ml-3" type="button" onclick="openMenu()" aria-controls="mobileMenu" aria-expanded="false" aria-label="Open menu">
                 <img src="./assets/menu-black.png" alt="" class="w-6 dark:hidden" />
                 <img src="./assets/menu-white.png" alt="" class="w-6 hidden dark:block" />
             </button>
 
         </div>
         <!-- ----- mobile menu ------ -->
-        <ul id="mobileMenu"
+        <ul id="mobileMenu" aria-hidden="true"
             class="flex md:hidden flex-col gap-4 py-20 px-10 fixed -right-64 top-0 bottom-0 w-64 z-50 h-screen bg-rose-50 transition duration-500 font-Ovo dark:bg-darkHover dark:text-white">
 
-            <div class="absolute right-6 top-6" onclick="closeMenu()">
+            <button class="absolute right-6 top-6" type="button" onclick="closeMenu()" aria-label="Close menu">
                 <img src="./assets/close-black.png" alt="" class="w-5 cursor-pointer dark:hidden" />
                 <img src="./assets/close-white.png" alt="" class="w-5 cursor-pointer hidden dark:block" />
-            </div>
+            </button>
 
-            <li><a class="font-semibold text-3xl" href="#top" onclick="closeMenu()">Home</a></li>
-            <li><a class="font-semibold text-3xl" href="#about" onclick="closeMenu()">About us</a></li>
-            <li><a class="font-semibold text-3xl" href="#banking" onclick="closeMenu()">Banking</a></li>
-            <li><a class="font-semibold text-3xl" href="#shopping" onclick="closeMenu()">Shopping</a></li>
-            <li><a class="font-semibold text-3xl" href="#camera" onclick="closeMenu()">Camera</a></li>
+            <li><a class="font-semibold text-3xl" href="#top" onclick="closeMenu()" data-i18n="nav_home">Home</a></li>
+            <li><a class="font-semibold text-3xl" href="#about" onclick="closeMenu()" data-i18n="nav_about">About us</a></li>
+            <li><a class="font-semibold text-3xl" href="#banking" onclick="closeMenu()" data-i18n="nav_banking">Banking</a></li>
+            <li><a class="font-semibold text-3xl" href="#shopping" onclick="closeMenu()" data-i18n="nav_shopping">Shopping</a></li>
+            <li><a class="font-semibold text-3xl" href="#camera" onclick="closeMenu()" data-i18n="nav_camera">Camera</a></li>
         </ul>
     </nav>
 
+    <!-- ----- vision & camera section ------ -->
+    <main id="main-content">
     <!-- ----- home section ------ -->
-    <div class="w-11/12 max-w-3xl text-center mx-auto h-screen flex flex-col items-center justify-center gap-4">
-        <img src="./assets/profile-img.png" alt="" class="rounded-full w-32" />
-        <h3 class="flex items-end gap-2 text-xl md:text-2xl mb-3 font-Ovo">
+    <div id="top" class="w-11/12 max-w-3xl text-center mx-auto h-screen flex flex-col items-center justify-center gap-4">
+        <img src="./assets/profile-img.png" alt="Eliana Jade portrait" class="rounded-full w-32" />
+        <h3 class="flex items-end gap-2 text-xl md:text-2xl mb-3 font-Ovo" data-i18n="home_greeting">
             Hi! I&apos;m Eliana Jade
             <img src="./assets/hand-icon.png" alt="" class="w-6 mb-1" />
         </h3>
-        <h1 class="text-3xl sm:text-6xl lg:text-[66px] font-Ovo whitespace-nowrap">Where voice becomes autonomous vision</h1>
-        <h1 class="text-3xl sm:text-6xl lg:text-[66px] font-Ovo">حوّل صوتك إلى رؤية</h1>
+        <h1 class="text-3xl sm:text-6xl lg:text-[66px] font-Ovo" data-i18n="home_tagline">Where voice becomes autonomous vision</h1>
 
         <div class="flex flex-col sm:flex-row items-center gap-4 mt-4">
             <a href="#banking"
-                class="px-16 py-5 border-2 border-black rounded-sm bg-black text-white text-xl font-bold flex items-center gap-4 hover:bg-gray-800 transition min-h-[56px]">
+                class="px-16 py-5 border-2 border-black rounded-sm bg-black text-white text-xl font-bold flex items-center gap-4 hover:bg-gray-800 transition min-h-[56px]" data-i18n="home_banking_btn">
                 Banking
             </a>
 
             <a href="#shopping"
-                class="px-16 py-5 border-2 border-black rounded-sm bg-black text-white text-xl font-bold flex items-center gap-4 hover:bg-gray-800 transition min-h-[56px]">
+                class="px-16 py-5 border-2 border-black rounded-sm bg-black text-white text-xl font-bold flex items-center gap-4 hover:bg-gray-800 transition min-h-[56px]" data-i18n="home_shopping_btn">
                 Shopping
             </a>
+        </div>
+    </div>
+
+    <!-- ----- vision & camera section ------ -->
+    <div id="camera" lang="fr" class="w-full px-[12%] pb-10 bg-gray-50 dark:bg-darkTheme/50" style="padding-top: 100px; scroll-margin-top: 100px;">
+        <h2 class="text-center text-5xl font-Ovo mb-12" data-i18n="camera_title">Vision &amp; Camera</h2>
+        <div class="flex flex-col items-center gap-6 max-w-2xl mx-auto">
+            <div class="w-full max-w-lg">
+                <video id="videoStream" width="100%" height="auto" aria-label="Camera preview" 
+                    class="rounded-lg border-2 border-gray-300 dark:border-white/30 bg-black"
+                    autoplay playsinline></video>
+            </div>
+            <div class="flex flex-wrap justify-center gap-4">
+                <button onclick="startCamera()" id="startBtn" type="button"
+                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200" data-i18n="camera_start">
+                    Start Camera
+                </button>
+                <button onclick="checkVision()" id="checkBtn" type="button" disabled
+                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200" data-i18n="camera_check">
+                    Check Vision
+                </button>
+                <button onclick="stopCamera()" id="stopBtn" type="button" style="display:none;"
+                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200" data-i18n="camera_close">
+                    Close Camera
+                </button>
+                <button onclick="startVisionVoiceAssistant(true)" id="startAssistantBtn" type="button"
+                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200" data-i18n="camera_assistant">
+                    Assistant Vocal
+                </button>
+            </div>
+
+            <!-- Test Mode Section -->
+            <div class="mt-8 p-6 border-2 border-dashed border-gray-400 dark:border-white/40 rounded-lg max-w-lg w-full bg-blue-50 dark:bg-blue-900/20">
+                <h4 class="font-bold text-lg mb-4 dark:text-white" data-i18n="camera_test_title">🧪 Test Mode - 3 Niveaux de Vision</h4>
+                <p class="text-sm text-gray-600 dark:text-white/80 mb-4" data-i18n="camera_test_desc">Testez les trois niveaux de vision:</p>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="testVisionScore(85)" 
+                        class="px-4 py-2 border border-green-600 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50 transition font-semibold" data-i18n="camera_test_normal">
+                        ✓ Normal (85)
+                    </button>
+                    <button onclick="testVisionScore(50)" 
+                        class="px-4 py-2 border border-orange-600 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded hover:bg-orange-100 dark:hover:bg-orange-900/50 transition font-semibold" data-i18n="camera_test_weak">
+                        ⚠️ Faible (50)
+                    </button>
+                    <button onclick="testVisionScore(25)" 
+                        class="px-4 py-2 border border-red-600 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition font-semibold" data-i18n="camera_test_very_weak">
+                        ✗ Très Faible (25)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Accessibility Mode Control Panel (floating) -->
+            <div id="accessibilityControlPanel" role="region" aria-label="Accessibility controls" aria-hidden="true" style="display: none;" class="fixed bottom-6 right-6 z-[9999] p-6 bg-white dark:bg-darkTheme border-3 border-orange-500 rounded-xl shadow-2xl max-w-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="font-bold text-lg dark:text-white" data-i18n="acc_panel_title">♿ Mode Accessibilite</h4>
+                    <button onclick="disableAccessibilityMode()" type="button" aria-label="Close accessibility controls" class="text-gray-600 dark:text-white/80 hover:text-black dark:hover:text-white font-bold text-xl">✕</button>
+                </div>
+                <p class="text-sm text-gray-600 dark:text-white/80 mb-4" data-i18n="acc_panel_desc">Changez de niveau ou desactivez:</p>
+                <div class="flex flex-col gap-3">
+                    <button onclick="testVisionScore(85)" type="button"
+                        class="px-4 py-2 border border-green-600 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50 transition font-semibold w-full" data-i18n="camera_test_normal">
+                        ✓ Normal (85)
+                    </button>
+                    <button onclick="testVisionScore(50)" type="button"
+                        class="px-4 py-2 border border-orange-600 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded hover:bg-orange-100 dark:hover:bg-orange-900/50 transition font-semibold w-full" data-i18n="camera_test_weak">
+                        ⚠️ Faible (50)
+                    </button>
+                    <button onclick="testVisionScore(25)" type="button"
+                        class="px-4 py-2 border border-red-600 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition font-semibold w-full" data-i18n="camera_test_very_weak">
+                        ✗ Tres Faible (25)
+                    </button>
+                    <button onclick="disableAccessibilityMode()" type="button"
+                        class="px-4 py-2 border-2 border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition font-semibold w-full" data-i18n="acc_panel_disable">
+                        ↩️ Desactiver
+                    </button>
+                </div>
+            </div>
+
+            <p id="visionStatus" role="status" aria-live="polite" aria-atomic="true" class="text-sm text-gray-700 dark:text-white/80"></p>
         </div>
     </div>
 
@@ -197,82 +297,6 @@
         </div>
     </div>
 
-    <!-- ----- camera section ------ -->
-    <div id="camera" class="w-full px-[12%] py-10 scroll-mt-20 bg-gray-50 dark:bg-darkTheme/50">
-        <h4 class="text-center mb-2 text-lg font-Ovo">Multimedia</h4>
-        <h2 class="text-center text-5xl font-Ovo mb-12">Camera Access</h2>
-        <div class="flex flex-col items-center gap-6 max-w-2xl mx-auto">
-            <div class="w-full max-w-lg">
-                <video id="videoStream" width="100%" height="auto" 
-                    class="rounded-lg border-2 border-gray-300 dark:border-white/30 bg-black"
-                    autoplay playsinline></video>
-            </div>
-            <div class="flex gap-4">
-                <button onclick="startCamera()" id="startBtn"
-                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200">
-                    Start Camera
-                </button>
-                <button onclick="checkVision()" id="checkBtn" disabled
-                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200">
-                    Check Vision
-                </button>
-                <button onclick="stopCamera()" id="stopBtn" style="display:none;"
-                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200">
-                    Close Camera
-                </button>
-            </div>
-
-            <!-- Test Mode Section -->
-            <div class="mt-8 p-6 border-2 border-dashed border-gray-400 dark:border-white/40 rounded-lg max-w-lg w-full bg-blue-50 dark:bg-blue-900/20">
-                <h4 class="font-bold text-lg mb-4 dark:text-white">🧪 Test Mode - 3 Niveaux de Vision</h4>
-                <p class="text-sm text-gray-600 dark:text-white/80 mb-4">Testez les trois niveaux de vision:</p>
-                <div class="flex flex-wrap gap-3">
-                    <button onclick="testVisionScore(85)" 
-                        class="px-4 py-2 border border-green-600 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50 transition font-semibold">
-                        ✓ Normal (85)
-                    </button>
-                    <button onclick="testVisionScore(50)" 
-                        class="px-4 py-2 border border-orange-600 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded hover:bg-orange-100 dark:hover:bg-orange-900/50 transition font-semibold">
-                        ⚠️ Faible (50)
-                    </button>
-                    <button onclick="testVisionScore(25)" 
-                        class="px-4 py-2 border border-red-600 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition font-semibold">
-                        ✗ Très Faible (25)
-                    </button>
-                </div>
-            </div>
-
-            <!-- Accessibility Mode Control Panel (floating) -->
-            <div id="accessibilityControlPanel" style="display: none;" class="fixed bottom-6 right-6 z-[9999] p-6 bg-white dark:bg-darkTheme border-3 border-orange-500 rounded-xl shadow-2xl max-w-sm">
-                <div class="flex items-center justify-between mb-4">
-                    <h4 class="font-bold text-lg dark:text-white">♿ Mode Accessibilité</h4>
-                    <button onclick="disableAccessibilityMode()" class="text-gray-600 dark:text-white/80 hover:text-black dark:hover:text-white font-bold text-xl">✕</button>
-                </div>
-                <p class="text-sm text-gray-600 dark:text-white/80 mb-4">Changez de niveau ou désactivez:</p>
-                <div class="flex flex-col gap-3">
-                    <button onclick="testVisionScore(85)" 
-                        class="px-4 py-2 border border-green-600 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50 transition font-semibold w-full">
-                        ✓ Normal (85)
-                    </button>
-                    <button onclick="testVisionScore(50)" 
-                        class="px-4 py-2 border border-orange-600 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded hover:bg-orange-100 dark:hover:bg-orange-900/50 transition font-semibold w-full">
-                        ⚠️ Faible (50)
-                    </button>
-                    <button onclick="testVisionScore(25)" 
-                        class="px-4 py-2 border border-red-600 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition font-semibold w-full">
-                        ✗ Très Faible (25)
-                    </button>
-                    <button onclick="disableAccessibilityMode()" 
-                        class="px-4 py-2 border-2 border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition font-semibold w-full">
-                        ↩️ Désactiver
-                    </button>
-                </div>
-            </div>
-
-            <p id="visionStatus" class="text-sm text-gray-700 dark:text-white/80"></p>
-        </div>
-    </div>
-
     <!-- ----- banking section ------ -->
     <div id="banking" class="w-full px-[12%] py-20 scroll-mt-20">
         <div class="flex justify-between items-center mb-8 max-w-5xl mx-auto">
@@ -334,7 +358,7 @@
         <div id="transactionForm" class="max-w-3xl mx-auto mb-16 border border-blue-300 dark:border-blue-500 rounded-2xl p-8 bg-blue-50 dark:bg-blue-900/20" style="display: none;">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-2xl font-semibold dark:text-white">🎤 Voice Transaction</h3>
-                <button onclick="cancelVoiceTransaction()" class="text-gray-600 dark:text-white/80 hover:text-black dark:hover:text-white">✕</button>
+                <button onclick="cancelVoiceTransaction()" type="button" aria-label="Close voice transaction" class="text-gray-600 dark:text-white/80 hover:text-black dark:hover:text-white">✕</button>
             </div>
             
             <!-- Conversation Display -->
@@ -395,7 +419,7 @@
         <div id="balanceDisplay" class="max-w-3xl mx-auto border border-green-300 dark:border-green-500 rounded-2xl p-8 bg-green-50 dark:bg-green-900/20" style="display: none;">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-2xl font-semibold dark:text-white">Account Balance</h3>
-                <button onclick="showMainBanking()" class="text-gray-600 dark:text-white/80 hover:text-black dark:hover:text-white">✕</button>
+                <button onclick="showMainBanking()" type="button" aria-label="Close balance view" class="text-gray-600 dark:text-white/80 hover:text-black dark:hover:text-white">✕</button>
             </div>
             <div class="text-center py-8">
                 <p class="text-gray-600 dark:text-white/80 mb-4">Your current balance is:</p>
@@ -415,9 +439,10 @@
         <!-- Search and Filter -->
         <div class="max-w-5xl mx-auto mb-12">
             <div class="flex flex-col sm:flex-row gap-4">
-                <input type="text" placeholder="Search products..." 
+                <label for="productSearch" class="sr-only">Search products</label>
+                <input id="productSearch" name="productSearch" type="text" placeholder="Search products..." 
                     class="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-white/30 rounded-lg dark:bg-darkTheme dark:text-white focus:outline-none focus:border-black dark:focus:border-white">
-                <button class="px-8 py-3 border-2 border-black dark:border-white rounded-lg bg-black dark:bg-white text-white dark:text-black font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition">
+                <button class="px-8 py-3 border-2 border-black dark:border-white rounded-lg bg-black dark:bg-white text-white dark:text-black font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition" type="button">
                     🔍 Search
                 </button>
             </div>
@@ -500,10 +525,22 @@
         </div>
     </div>
 
-    <!-- Load banking module first -->
+    </main>
+
+    <!-- Load translations module first -->
+    <script src="./modules/translations.js"></script>
+    <!-- Load banking module -->
     <script src="./modules/banking.js"></script>
     <!-- Main application script -->
     <script src="./script.js"></script>
+    <script>
+        // Auto-scroll to Vision section after page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('camera').scrollIntoView({ behavior: 'smooth' });
+            }, 2000);
+        });
+    </script>
 
 </body>
 
