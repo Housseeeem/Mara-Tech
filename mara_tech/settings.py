@@ -176,3 +176,4 @@ LOGGING = {
         },
     },
 }
+CORS_ALLOW_ALL_ORIGINS = DEBUG
