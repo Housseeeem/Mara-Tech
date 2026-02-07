@@ -46,7 +46,34 @@ db.sqlite3
 .DS_Store
 Thumbs.db
 
+# Node.js / npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+
+# Next.js
+.next/
+out/
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.swp
+*.swo
+*~
+
 # BMAD / Project Management
 _bmad/
 .github/
 _bmad-output/
+
+frontend/.github/
