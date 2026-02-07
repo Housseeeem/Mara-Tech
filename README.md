@@ -52,12 +52,18 @@ DB_USER=postgres
 DB_PASSWORD=your-db-password
 DB_HOST=localhost
 DB_PORT=5432
+
+# OpenAI Configuration (pour l'assistant shopping)
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=hosted_vllm/llava-1.5-7b-hf
 ```
 
 **⚠️ Important:**
 - Change `DJANGO_SECRET_KEY` to a secure random string (use `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)
 - Update `DB_PASSWORD` with your PostgreSQL password
 - Update `DB_HOST` if database is remote
+- For **Shopping Assistant**: Set `OPENAI_API_KEY` and optionally `OPENAI_BASE_URL` (for VLLM servers) and `OPENAI_MODEL` (default: `hosted_vllm/llava-1.5-7b-hf`)
 
 ### 5. Create PostgreSQL Database
 
