@@ -184,6 +184,17 @@ function toggleLanguageMenu() {
 function changeLanguage(lang) {
     setLanguage(lang);
 
+        // Force reload of speechSynthesis voices when language changes
+        // Chrome/Edge sometimes don't expose Arabic voices immediately
+        if ('speechSynthesis' in window) {
+            console.log('Language changed to:', lang, '- reloading voices');
+            speechSynthesis.cancel(); // Cancel any ongoing speech
+            // Force a reload of voices by calling getVoices
+            speechSynthesis.getVoices();
+            // Trigger voiceschanged event to force refresh
+            window.dispatchEvent(new Event('voiceschanged'));
+        }
+
     // Update language button text
     const currentLangText = document.getElementById('currentLangText');
     if (currentLangText) {
@@ -201,6 +212,35 @@ function changeLanguage(lang) {
     if (btn) {
         btn.setAttribute('aria-expanded', 'false');
     }
+}
+
+/**
+ * Show warning when Arabic voice is not available
+ */
+function showArabicWarning() {
+    console.log('showArabicWarning called');
+    const msg = document.createElement('div');
+    msg.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #ff6b6b;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-width: 400px;
+        z-index: 9999;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+    `;
+    msg.innerHTML = `
+        <strong>⚠️ Arabic Voice Not Available</strong><br/>
+        <small>Chrome/Edge bug: Arabic voice installed but not exposed to Web APIs. Try Firefox.</small>
+    `;
+    document.body.appendChild(msg);
+    setTimeout(() => msg.remove(), 5000);
 }
 
 // Close language menu when clicking outside
@@ -335,6 +375,49 @@ function getRecognitionLang() {
     return langConfig ? langConfig.speechCode : 'fr-FR';
 }
 
+/**
+ * Wait for speechSynthesis voices to load (with timeout)
+ * @returns {Promise<Array>} - Array of voices
+ */
+async function waitForVoices() {
+    return new Promise((resolve) => {
+        const voices = speechSynthesis.getVoices();
+        if (voices.length > 0) {
+            console.log('Voices already loaded:', voices.length, 'Available languages:', voices.map(v => v.lang).join(', '));
+            resolve(voices);
+            return;
+        }
+
+        console.log('Voices not loaded yet, waiting...');
+        let attempts = 0;
+        const maxAttempts = 50; // max 5 seconds with 100ms intervals (longer for Arabic)
+
+        const voicesChangedHandler = () => {
+            attempts++;
+            const newVoices = speechSynthesis.getVoices();
+            console.log('Voices changed event fired, now have:', newVoices.length, 'voices. Languages:', newVoices.map(v => v.lang).join(', '));
+            if (newVoices.length > 0 || attempts >= maxAttempts) {
+                speechSynthesis.removeEventListener('voiceschanged', voicesChangedHandler);
+                clearInterval(checkInterval);
+                resolve(newVoices);
+            }
+        };
+
+        // Also poll in case voiceschanged doesn't fire
+        const checkInterval = setInterval(() => {
+            attempts++;
+            const newVoices = speechSynthesis.getVoices();
+            if (newVoices.length > 0 || attempts >= maxAttempts) {
+                speechSynthesis.removeEventListener('voiceschanged', voicesChangedHandler);
+                clearInterval(checkInterval);
+                console.log('Voices polling resolved with:', newVoices.length, 'voices. Languages:', newVoices.map(v => v.lang).join(', '));
+                resolve(newVoices);
+            }
+        }, 100);
+
+        speechSynthesis.addEventListener('voiceschanged', voicesChangedHandler);
+    });
+}
 
 function speakText(text, options = {}) {
     if (!('speechSynthesis' in window)) {
@@ -381,26 +464,77 @@ function speakText(text, options = {}) {
         }
     };
 
-    // Delay speak slightly after cancel to avoid stuck state
-    setTimeout(() => {
+    // Wait for voices to be ready, then select and speak
+    (async () => {
         try {
-            speechSynthesis.speak(utterance);
+            const voices = await waitForVoices();
+            
+            if (voices.length === 0) {
+                console.warn('No voices available, speaking with browser default');
+                // Just speak with no voice selection
+            } else {
+                // Try to choose a voice that best matches the requested language
+                const primary = (lang || '').split('-')[0].toLowerCase();
+                console.log('Language requested:', lang, 'Primary code:', primary);
+                console.log('Looking for voice matching language:', primary, 'from', voices.length, 'available voices');
+                console.log('Available voices:', voices.map(v => v.lang + "/" + v.name));
 
-            // WORKAROUND: Chrome/Edge bug where long utterances pause silently
-            // Keep poking speechSynthesis to prevent it from pausing
-            const keepAlive = setInterval(() => {
-                if (!speechSynthesis.speaking) {
-                    clearInterval(keepAlive);
-                    return;
+                // 1. Prefer exact language prefix match (e.g. 'ar' matches 'ar-SA')
+                let chosen = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(primary));
+
+                // 2. Try full language code match (e.g., 'ar-SA' matches 'ar-SA')
+                if (!chosen) {
+                    chosen = voices.find(v => v.lang && v.lang.toLowerCase() === lang.toLowerCase());
                 }
-                speechSynthesis.pause();
-                speechSynthesis.resume();
-            }, 5000);
 
-        } catch (err) {
-            console.error('Error calling speechSynthesis.speak:', err);
+                // 3. Try voice name containing language code
+                if (!chosen && primary) {
+                    chosen = voices.find(v => v.name && v.name.toLowerCase().includes(primary));
+                }
+
+                // Log if Arabic was requested but not found (Chrome/Edge bug)
+                if (primary === 'ar' && !chosen) {
+                    console.warn('❌ ARABIC VOICE NOT FOUND! This is a Chrome/Edge bug - Arabic is installed on Windows but not exposed to Web APIs.');
+                    console.warn('💡 Workaround: Try Firefox, Safari, or wait for browser update.');
+                    showArabicWarning();
+                }
+
+                // 4. Fallback chain: fr -> en -> any
+                if (!chosen) chosen = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('fr'));
+                if (!chosen) chosen = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+                if (!chosen) chosen = voices[0];
+
+                if (chosen) {
+                    utterance.voice = chosen;
+                    const fallbackMsg = (primary === 'ar' && chosen.lang && !chosen.lang.toLowerCase().startsWith('ar')) ? ' (🔄 fallback due to missing Arabic voice)' : '';
+                    console.log('Using voice:', chosen.name, '(' + chosen.lang + ')' + fallbackMsg);
+                }
+            }
+        } catch (e) {
+            console.warn('Error selecting voice:', e);
         }
-    }, 150);
+
+        // Delay speak slightly to avoid stuck state
+        setTimeout(() => {
+            try {
+                speechSynthesis.speak(utterance);
+
+                // WORKAROUND: Chrome/Edge bug where long utterances pause silently
+                // Keep poking speechSynthesis to prevent it from pausing
+                const keepAlive = setInterval(() => {
+                    if (!speechSynthesis.speaking) {
+                        clearInterval(keepAlive);
+                        return;
+                    }
+                    speechSynthesis.pause();
+                    speechSynthesis.resume();
+                }, 5000);
+
+            } catch (err) {
+                console.error('Error calling speechSynthesis.speak:', err);
+            }
+        }, 150);
+    })();
 }
 
 /**
@@ -438,13 +572,31 @@ function speakTextInFrench(text, options = {}) {
         }
     };
 
-    setTimeout(() => {
+    // Wait for voices and select a French one
+    (async () => {
         try {
-            speechSynthesis.speak(utterance);
-        } catch (err) {
-            console.error('Error calling speechSynthesis.speak:', err);
+            const voices = await waitForVoices();
+            if (voices.length > 0) {
+                let chosen = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('fr'));
+                if (!chosen) chosen = voices[0]; // Fallback to first available
+                
+                if (chosen) {
+                    utterance.voice = chosen;
+                    console.log('Using French voice:', chosen.name, '(' + chosen.lang + ')');
+                }
+            }
+        } catch (e) {
+            console.warn('Error selecting French voice:', e);
         }
-    }, 150);
+
+        setTimeout(() => {
+            try {
+                speechSynthesis.speak(utterance);
+            } catch (err) {
+                console.error('Error calling speechSynthesis.speak:', err);
+            }
+        }, 150);
+    })();
 }
 
 /**
@@ -1120,7 +1272,20 @@ function listenForFeatureChoice() {
 }
 
 function navigateToSection(feature) {
-    // Scroll to the section
+    // ✅ SHOPPING: Redirection vers shopping.html
+    if (feature.name === 'nav_shopping') {
+        speakText(`${t('speech_welcome_to')} ${t(feature.name)}. Redirection en cours...`, {
+            cancelPrevious: true,
+            onend: () => {
+                setVisionStatus('Ouverture de Shopping...');
+                // Redirection vers shopping.html
+                window.location.href = 'shopping.html';
+            }
+        });
+        return; // ⚠️ Important: sortir de la fonction
+    }
+
+    // Scroll to the section (pour Banking et autres)
     const element = document.querySelector(feature.target);
     if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
