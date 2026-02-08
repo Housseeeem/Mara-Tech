@@ -87,21 +87,19 @@ STEP 2: Look for sunglasses or very dark glasses
 - Are they wearing dark/black sunglasses that hide the eyes?
 
 STEP 3: Determine is_blind
-- Set is_blind = TRUE if ANY of these:
-  * Eyes are CLOSED (eyelids covering eyes)
-  * Wearing very dark/black sunglasses
-  * Person appears to be blind
-- Set is_blind = FALSE only if eyes are clearly OPEN and visible
+- Set is_blind = TRUE only if clearly the eyes are CLOSED (eyelids covering eyes) or wearing very dark/black sunglasses
+- Set is_blind = FALSE if eyes appear open or if you cannot determine clearly
 
 EXAMPLES:
 - Closed eyelids → is_blind: true, reason: "Eyes are closed"
 - Dark sunglasses → is_blind: true, reason: "Wearing dark sunglasses"
 - Open eyes visible → is_blind: false, reason: "Eyes are open and visible"
+- Blurry image or unclear → is_blind: false, reason: "Cannot determine clearly"
 
 Return ONLY this JSON format:
 {"score": 0-100, "ok": true/false, "is_blind": true/false, "reason": "what you see"}
 
-BE VERY CAREFUL: If you cannot clearly see open eyes with pupils visible, set is_blind to TRUE."""},
+Only set is_blind to TRUE when you are certain the person is blind, has closed eyes, or is wearing dark sunglasses."""},
                     {"type": "image_url", "image_url": {"url": _normalize_data_url(image_data)}},
                 ],
             },
@@ -190,11 +188,11 @@ def _assess_local(image: np.ndarray, threshold: float | None) -> VisionResult:
             edges = cv2.Canny(eye_region_top, 50, 150)
             edge_density = float(cv2.countNonZero(edges)) / float(eye_region_top.size)
             
-            # If very few eyes detected (0 or 1) and low edge density, likely closed
-            if len(eyes) <= 1 and edge_density < 0.02:
+            # If very few eyes detected (0) and very low edge density, likely closed
+            if len(eyes) == 0 and edge_density < 0.01:
                 is_blind = True
                 reason_parts.append("Yeux fermés détectés (faible densité de contours)")
-            elif len(eyes) == 0:
+            elif len(eyes) <= 1 and edge_density < 0.005:
                 is_blind = True
                 reason_parts.append("Yeux non détectés (possiblement fermés ou lunettes noires)")
             else:
@@ -204,11 +202,11 @@ def _assess_local(image: np.ndarray, threshold: float | None) -> VisionResult:
                     eye_region = roi_gray[ey:ey+eh, ex:ex+ew]
                     eye_brightness = float(cv2.mean(eye_region)[0])
                     # Very dark eye regions suggest dark sunglasses
-                    if eye_brightness < 40:
+                    if eye_brightness < 30:
                         dark_eye_count += 1
                 
-                # If most detected eyes are very dark
-                if dark_eye_count >= len(eyes) * 0.5:
+                # If all detected eyes are very dark
+                if dark_eye_count == len(eyes) and len(eyes) > 0:
                     is_blind = True
                     reason_parts.append("Lunettes noires détectées")
     except Exception:

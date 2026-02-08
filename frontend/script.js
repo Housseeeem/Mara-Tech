@@ -50,7 +50,7 @@ function showStartPrompt() {
     }
 
     const handler = () => {
-        console.log('Click detected - launching language selection first');
+        console.log('Click detected - checking language');
         document.removeEventListener('click', handler);
         document.removeEventListener('touchstart', handler);
 
@@ -62,16 +62,42 @@ function showStartPrompt() {
 
         visionAssistantActive = true;
         visionAssistantRetries = 0;
-        assistantPhase = 'language';
 
-        setVisionStatus('Assistant vocal actif.');
-        // Always ask for language preference in French first
-        speakTextInFrench('Bienvenue. Quelle langue préférez-vous? Dites français, anglais ou arabe.', {
-            onend: () => {
-                console.log('Language question ended, listening for language choice');
-                listenForLanguageChoice();
-            }
-        });
+        // Check if language is already set
+        const currentLang = localStorage.getItem('selectedLanguage');
+        if (currentLang && ['fr', 'en', 'ar'].includes(currentLang)) {
+            console.log('Language already set to:', currentLang);
+            assistantPhase = 'vision';
+            setVisionStatus(t('speech_welcome'));
+            speakText(t('speech_welcome') + '. ' + t('speech_open_camera'), {
+                onend: () => {
+                    console.log('Welcome message ended, listening for response');
+                    listenForAssistantCommand({
+                        yesWords: getYesWords(),
+                        noWords: getNoWords(),
+                        promptText: t('speech_say_yes_no'),
+                        recognitionLang: getRecognitionLang(),
+                        onYes: () => handleAssistantOpenCamera(),
+                        onNo: () => {
+                            sessionStorage.setItem('visionAssistantDone', 'true');
+                            endVisionAssistant(t('speech_vision_passed'));
+                            setTimeout(() => startFeatureAssistant(), 800);
+                        }
+                    });
+                }
+            });
+        } else {
+            console.log('No language set, asking for preference');
+            assistantPhase = 'language';
+            setVisionStatus('Assistant vocal actif.');
+            // Always ask for language preference in French first
+            speakTextInFrench('Bienvenue. Quelle langue préférez-vous? Dites français, anglais ou arabe.', {
+                onend: () => {
+                    console.log('Language question ended, listening for language choice');
+                    listenForLanguageChoice();
+                }
+            });
+        }
     };
 
     document.addEventListener('click', handler);
@@ -279,9 +305,17 @@ function getBankingWords() {
 }
 
 /**
- * Get shopping keywords for current language
- * @returns {Array<string>} - Array of shopping keywords
+ * Convert number to Arabic numerals if current language is Arabic
+ * @param {number|string} num - The number to convert
+ * @returns {string} - The number in appropriate numerals
  */
+function localizeNumber(num) {
+    const lang = currentLanguage || 'fr';
+    if (lang === 'ar') {
+        return num.toString().replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[d]);
+    }
+    return num.toString();
+}
 function getShoppingWords() {
     const lang = currentLanguage || 'fr';
     const words = {
@@ -427,9 +461,9 @@ function listenForLanguageChoice() {
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR'; // Listen in French for language keywords
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
-    recognition.continuous = false;
+    recognition.continuous = true;
 
     let gotResult = false;
     let didTimeout = false;
@@ -452,19 +486,22 @@ function listenForLanguageChoice() {
     };
 
     recognition.onresult = (event) => {
+        const result = event.results[event.results.length - 1];
+        if (!result.isFinal) return; // Wait for final result
+        
         gotResult = true;
         clearTimeout(safetyTimer);
-        const transcript = event.results[0][0].transcript;
+        const transcript = result[0].transcript;
         const normalizedTranscript = normalizeSpeechText(transcript);
         console.log('Language choice result:', { transcript, normalizedTranscript });
 
         // Check which language was mentioned
         let selectedLang = null;
-        if (normalizedTranscript.includes('francais') || normalizedTranscript.includes('français')) {
+        if (normalizedTranscript.includes('francais') || normalizedTranscript.includes('français') || normalizedTranscript.includes('french')) {
             selectedLang = 'fr';
-        } else if (normalizedTranscript.includes('anglais') || normalizedTranscript.includes('english')) {
+        } else if (normalizedTranscript.includes('anglais') || normalizedTranscript.includes('english') || normalizedTranscript.includes('انجليزي') || normalizedTranscript.includes('english')) {
             selectedLang = 'en';
-        } else if (normalizedTranscript.includes('arabe') || normalizedTranscript.includes('arabic')) {
+        } else if (normalizedTranscript.includes('arabe') || normalizedTranscript.includes('arabic') || normalizedTranscript.includes('العربية') || normalizedTranscript.includes('عربي') || normalizedTranscript.includes('arabiya') || normalizedTranscript.includes('al arabiya') || normalizedTranscript.includes('al-arabia') || normalizedTranscript.includes('arabi')) {
             selectedLang = 'ar';
         }
 
@@ -473,9 +510,12 @@ function listenForLanguageChoice() {
             // Set the language
             changeLanguage(selectedLang);
 
-            // Confirm in French
+            // Confirm in the selected language
             const langNames = { fr: 'français', en: 'anglais', ar: 'arabe' };
-            speakTextInFrench(`Langue définie en ${langNames[selectedLang]}.`, {
+            const confirmText = selectedLang === 'fr' ? `Langue définie en ${langNames[selectedLang]}.` :
+                               selectedLang === 'en' ? `Language set to ${langNames[selectedLang]}.` :
+                               `تم تعيين اللغة إلى ${langNames[selectedLang]}.`;
+            speakText(confirmText, {
                 onend: () => {
                     // Now continue with vision assistant flow
                     continueToVisionAssistant();
@@ -651,13 +691,12 @@ async function checkVision(options = {}) {
             return;
         }
 
-        // Determine vision level based on score and blind detection
+        // Determine vision level based on score (automatic blind detection disabled)
         let label = '';
-        isBlind = data.is_blind || false;
+        // Disable automatic blind detection — ignore any `data.is_blind` value
+        isBlind = false;
 
-        if (isBlind) {
-            label = 'Non-voyant détecté';
-        } else if (data.score >= 70) {
+        if (data.score >= 70) {
             label = 'Vision normale';
         } else if (data.score >= 40) {
             label = 'Vision faible';
@@ -674,7 +713,7 @@ async function checkVision(options = {}) {
         hasLowVision = data.score < 70;
 
         if (assistantMode) {
-            const spokenLabel = isBlind ? 'Non-voyant détecté' : (data.score >= 70 ? t('vision_normal').split('.')[0] : (data.score >= 40 ? t('vision_low').split('.')[0] : t('vision_very_low').split('.')[0]));
+            const spokenLabel = data.score >= 70 ? t('vision_normal').split('.')[0] : (data.score >= 40 ? t('vision_low').split('.')[0] : t('vision_very_low').split('.')[0]);
             const message = `${t('vision_analysis_result')} ${spokenLabel}. ${t('vision_say_close_or_keep')}`;
             speakText(message, {
                 cancelPrevious: true,
@@ -686,8 +725,8 @@ async function checkVision(options = {}) {
                         recognitionLang: getRecognitionLang(),
                         onYes: () => {
                             stopCamera();
-                            const scoreLabel = isBlind ? 'Non-voyant détecté' : (visionScore >= 70 ? t('vision_normal').split('.')[0] : (visionScore >= 40 ? t('vision_low').split('.')[0] : t('vision_very_low').split('.')[0]));
-                            const confirmMessage = `${t('vision_camera_closed')} ${t('vision_confirm_result')} ${scoreLabel}, score ${visionScore}. ${t('vision_say_yes_confirm')}`;
+                            const scoreLabel = visionScore >= 70 ? t('vision_normal').split('.')[0] : (visionScore >= 40 ? t('vision_low').split('.')[0] : t('vision_very_low').split('.')[0]);
+                            const confirmMessage = `${t('vision_camera_closed')} ${t('vision_confirm_result')} ${scoreLabel}, score ${localizeNumber(visionScore)}. ${t('vision_say_yes_confirm')}`;
                             speakText(confirmMessage, {
                                 cancelPrevious: true,
                                 onend: () => {
@@ -927,16 +966,17 @@ function endVisionAssistant(message) {
 // ===== PHASE 2: FEATURE NAVIGATION ASSISTANT =====
 const featureOptions = [
     {
-        name: 'Banking', keywords: ['banking', 'banque', 'compte', 'bank', 'bancaire', 'banques'], target: '#banking',
+        // use translation keys for labels so UI and speech follow current language
+        name: 'nav_banking', keywords: ['banking', 'banque', 'compte', 'bank', 'bancaire', 'banques', 'مصرفية', 'بنك', 'خدمات مصرفية', 'حساب', 'مالية'], target: '#banking',
         subOptions: [
-            { name: 'Voir le solde', keywords: ['solde', 'balance', 'argent', 'combien'], action: 'viewBalance' },
-            { name: 'Faire une transaction', keywords: ['transaction', 'envoyer', 'transferer', 'transfert', 'payer'], action: 'showTransactionForm' },
-            { name: 'Historique des transactions', keywords: ['historique', 'history', 'liste', 'transactions'], action: 'showTransactions' },
-            { name: 'Retour', keywords: ['retour', 'back', 'menu', 'revenir'], action: 'backToFeatures' }
+            { name: 'banking_check_balance', keywords: ['solde', 'balance', 'argent', 'combien', 'رصيد', 'الرصيد', 'كم المال'], action: 'viewBalance' },
+            { name: 'banking_new_transaction', keywords: ['transaction', 'envoyer', 'transferer', 'transfert', 'payer', 'تحويل', 'إرسال', 'دفع', 'معاملة'], action: 'showTransactionForm' },
+            { name: 'banking_view_history', keywords: ['historique', 'history', 'liste', 'transactions', 'سجل', 'تاريخ', 'قائمة', 'المعاملات'], action: 'showTransactions' },
+            { name: 'banking_back_main', keywords: ['retour', 'back', 'menu', 'revenir', 'عودة', 'رجوع', 'القائمة'], action: 'backToFeatures' }
         ]
     },
     {
-        name: 'Shopping', keywords: ['shopping', 'shop', 'acheter', 'courses', 'magasin'], target: '#shopping',
+        name: 'nav_shopping', keywords: ['shopping', 'shop', 'acheter', 'courses', 'magasin', 'تسوق', 'شراء', 'متجر', 'مشتريات'], target: '#shopping',
         subOptions: []
     }
 ];
@@ -946,7 +986,7 @@ function startFeatureAssistant() {
     visionAssistantActive = true;
     visionAssistantRetries = 0;
 
-    const names = featureOptions.map(f => f.name).join(', ');
+    const names = featureOptions.map(f => t(f.name)).join(', ');
     const message = `${t('speech_features_available').replace('Banking, Shopping', names)}`;
     setVisionStatus(`Fonctionnalites: ${names}`);
 
@@ -1090,9 +1130,9 @@ function navigateToSection(feature) {
         // Read sub-options for this section
         assistantPhase = 'section';
         visionAssistantRetries = 0;
-        const subNames = feature.subOptions.filter(s => s.action !== 'backToFeatures').map(s => s.name).join(', ');
-        const message = `${t('speech_welcome_to')} ${feature.name}. Voici les options: ${subNames}. ${t('speech_say_option_or_return').replace('une autre option ou', '')}`;
-        setVisionStatus(`${feature.name}: ${subNames}`);
+        const subNames = feature.subOptions.filter(s => s.action !== 'backToFeatures').map(s => t(s.name)).join(', ');
+        const message = `${t('speech_welcome_to')} ${t(feature.name)}. Voici les options: ${subNames}. ${t('speech_say_option_or_return').replace('une autre option ou', '')}`;
+        setVisionStatus(`${t(feature.name)}: ${subNames}`);
 
         speakText(message, {
             cancelPrevious: true,
@@ -1102,10 +1142,10 @@ function navigateToSection(feature) {
         });
     } else {
         // No sub-options, just announce arrival
-        speakText(`${t('speech_welcome_to')} ${feature.name}.`, {
+        speakText(`${t('speech_welcome_to')} ${t(feature.name)}.`, {
             cancelPrevious: true,
             onend: () => {
-                endVisionAssistant(`Section ${feature.name} ouverte.`);
+                endVisionAssistant(`Section ${t(feature.name)} ouverte.`);
             }
         });
     }
@@ -1202,7 +1242,7 @@ function listenForSectionCommand(feature) {
             visionAssistantRetries += 1;
             if (visionAssistantRetries <= visionAssistantMaxRetries) {
                 console.log('No speech detected, retrying...');
-                const subNames = feature.subOptions.map(s => s.name).join(', ');
+                const subNames = feature.subOptions.map(s => t(s.name)).join(', ');
                 speakText(t('speech_nothing_heard') + ' ' + `Les options sont: ${subNames}.`, {
                     cancelPrevious: true,
                     onend: () => listenForSectionCommand(feature)
@@ -1246,7 +1286,7 @@ function listenForSectionCommand(feature) {
 }
 
 function executeSectionAction(subOption, feature) {
-    setVisionStatus(`Execution: ${subOption.name}...`);
+    setVisionStatus(`Execution: ${t(subOption.name)}...`);
 
     // Call the corresponding function by name
     if (typeof window[subOption.action] === 'function') {
@@ -1273,7 +1313,7 @@ function executeSectionAction(subOption, feature) {
         return; // Don't announce other options during transaction
     }
 
-    speakText(`${subOption.name} ${t('speech_opened')} ${t('speech_say_option_or_return')}`, {
+    speakText(`${t(subOption.name)} ${t('speech_opened')} ${t('speech_say_option_or_return')}`, {
         cancelPrevious: true,
         onend: () => {
             visionAssistantRetries = 0;
@@ -1371,15 +1411,15 @@ function listenForConfirmation() {
 
 // ===== VOICE NAVIGATION SYSTEM =====
 const voiceNavItems = [
-    { name: 'Home', keywords: ['home', 'accueil', 'début'], target: '#top' },
-    { name: 'About us', keywords: ['about', 'about us', 'à propos', 'about me'], target: '#about' },
-    { name: 'Camera', keywords: ['camera', 'caméra', 'photo', 'appareil photo'], target: '#camera' },
-    { name: 'Banking', keywords: ['banking', 'banque', 'compte', 'account', 'financial'], target: '#banking' },
-    { name: 'Shopping', keywords: ['shopping', 'shop', 'acheter', 'courses', 'magasin', 'market'], target: '#shopping' }
+    { name: 'nav_home', keywords: ['home', 'accueil', 'début'], target: '#top' },
+    { name: 'nav_about', keywords: ['about', 'about us', 'à propos', 'about me'], target: '#about' },
+    { name: 'nav_camera', keywords: ['camera', 'caméra', 'photo', 'appareil photo'], target: '#camera' },
+    { name: 'nav_banking', keywords: ['banking', 'banque', 'compte', 'account', 'financial'], target: '#banking' },
+    { name: 'nav_shopping', keywords: ['shopping', 'shop', 'acheter', 'courses', 'magasin', 'market'], target: '#shopping' }
 ];
 
 function getVoiceNavOptions() {
-    return voiceNavItems.map(item => item.name).join(', ');
+    return voiceNavItems.map(item => t(item.name)).join(', ');
 }
 
 function startVoiceNavigation() {
@@ -1488,13 +1528,13 @@ function testVisionScore(score) {
 
     // Determine vision level
     if (score >= 70) {
-        label = 'Vision normale';
+        label = t('vision_normal').split('.')[0];
         mode = 'normal';
     } else if (score >= 40) {
-        label = 'Vision faible';
+        label = t('vision_low').split('.')[0];
         mode = 'medium';
     } else {
-        label = 'Vision très faible';
+        label = t('vision_very_low').split('.')[0];
         mode = 'extreme';
     }
 
@@ -1508,10 +1548,7 @@ function testVisionScore(score) {
     if (score >= 70) {
         // Normal vision - disable accessibility
         disableAccessibilityMode();
-        const announcement = new SpeechSynthesisUtterance(`Vision normale, score ${score}`);
-        announcement.lang = 'fr-FR';
-        announcement.rate = 0.9;
-        speechSynthesis.speak(announcement);
+        speakText(`${label}, score ${localizeNumber(score)}`, { cancelPrevious: true });
     } else if (score >= 40) {
         // Medium accessibility mode
         setTimeout(() => {

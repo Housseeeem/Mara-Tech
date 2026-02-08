@@ -161,7 +161,7 @@
                     Start Camera
                 </button>
                 <button onclick="checkVision()" id="checkBtn" type="button" disabled
-                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200" data-i18n="camera_check">
+                    class="px-8 py-3 border-2 border-black rounded-sm bg-black text-white font-bold hover:bg-gray-800 transition dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-200" data-i18n="camera_check">
                     Check Vision
                 </button>
                 <button onclick="stopCamera()" id="stopBtn" type="button" style="display:none;"
@@ -180,15 +180,15 @@
                 <p class="text-sm text-gray-600 dark:text-white/80 mb-4" data-i18n="camera_test_desc">Testez les trois niveaux de vision:</p>
                 <div class="flex flex-wrap gap-3">
                     <button onclick="testVisionScore(85)" 
-                        class="px-4 py-2 border border-green-600 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50 transition font-semibold" data-i18n="camera_test_normal">
+                        class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white" data-i18n="camera_test_normal">
                         Normal
                     </button>
                     <button onclick="testVisionScore(50)" 
-                        class="px-4 py-2 border border-orange-600 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded hover:bg-orange-100 dark:hover:bg-orange-900/50 transition font-semibold" data-i18n="camera_test_weak">
+                        class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white" data-i18n="camera_test_weak">
                         Faible
                     </button>
                     <button onclick="testVisionScore(25)" 
-                        class="px-4 py-2 border border-red-600 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition font-semibold" data-i18n="camera_test_very_weak">
+                        class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white" data-i18n="camera_test_very_weak">
                         Très Faible
                     </button>
                 </div>
@@ -297,8 +297,8 @@
     <div id="banking" class="w-full px-[12%] py-20 scroll-mt-20">
         <div class="flex justify-between items-center mb-8 max-w-5xl mx-auto">
             <div>
-                <h4 class="mb-2 text-lg font-Ovo">Financial Services</h4>
-                <h2 class="text-5xl font-Ovo">Banking</h2>
+                <h4 class="mb-2 text-lg font-Ovo" data-i18n="banking_subtitle">Financial Services</h4>
+                <h2 class="text-5xl font-Ovo" data-i18n="banking_title">Banking</h2>
             </div>
         </div>
 
@@ -306,40 +306,40 @@
         <div id="bankingMainView" class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-16">
             <!-- Account Overview Card -->
             <div class="border border-gray-300 dark:border-white/30 rounded-2xl p-8 hover:shadow-lg dark:hover:shadow-white/20 transition">
-                <h3 class="text-2xl font-semibold mb-6 dark:text-white">Your Account</h3>
+                <h3 class="text-2xl font-semibold mb-6 dark:text-white" data-i18n="banking_overview">Your Account</h3>
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600 dark:text-white/80">Account Balance:</span>
+                        <span class="text-gray-600 dark:text-white/80" data-i18n="banking_balance">Account Balance:</span>
                         <span id="accountBalance" class="text-2xl font-bold dark:text-white">$5,240.50</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600 dark:text-white/80">Account Type:</span>
+                        <span class="text-gray-600 dark:text-white/80" data-i18n="banking_account_type">Account Type:</span>
                         <span class="dark:text-white">Savings Account</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600 dark:text-white/80">Account Number:</span>
+                        <span class="text-gray-600 dark:text-white/80" data-i18n="banking_account_number">Account Number:</span>
                         <span class="dark:text-white">****5678</span>
                     </div>
                 </div>
-                <button onclick="viewBalance()" class="w-full mt-8 px-6 py-3 border-2 border-black dark:border-white rounded-lg bg-black dark:bg-white text-white dark:text-black font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition">
+                <button onclick="viewBalance()" class="w-full mt-8 px-6 py-3 border-2 border-black dark:border-white rounded-lg bg-black dark:bg-white text-white dark:text-black font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition" data-i18n="banking_check_balance">
                     View Balance
                 </button>
             </div>
 
             <!-- Quick Actions Card -->
             <div class="border border-gray-300 dark:border-white/30 rounded-2xl p-8 hover:shadow-lg dark:hover:shadow-white/20 transition">
-                <h3 class="text-2xl font-semibold mb-6 dark:text-white">Quick Actions</h3>
+                <h3 class="text-2xl font-semibold mb-6 dark:text-white" data-i18n="banking_quick_actions">Quick Actions</h3>
                 <div class="space-y-4">
-                    <button onclick="showTransactionForm()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white">
+                    <button onclick="showTransactionForm()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white" data-i18n="banking_new_transaction">
                         Make Transaction
                     </button>
-                    <button onclick="showTransactions()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white">
+                    <button onclick="showTransactions()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white" data-i18n="banking_view_history">
                         View Transactions
                     </button>
-                    <button onclick="viewBalance()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white">
+                    <button onclick="viewBalance()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white" data-i18n="banking_check_balance">
                         Check Balance
                     </button>
-                    <button onclick="showMainBanking()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white">
+                    <button onclick="showMainBanking()" class="w-full px-6 py-3 border-2 border-gray-400 dark:border-white/50 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition font-semibold dark:text-white" data-i18n="banking_back_main">
                         Home
                     </button>
                 </div>
@@ -349,7 +349,7 @@
         <!-- Voice Transaction Interface (Hidden by default) -->
         <div id="transactionForm" class="max-w-3xl mx-auto mb-16 border border-blue-300 dark:border-blue-500 rounded-2xl p-8 bg-blue-50 dark:bg-blue-900/20" style="display: none;">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-semibold dark:text-white">🎤 Voice Transaction</h3>
+                <h3 class="text-2xl font-semibold dark:text-white" data-i18n="banking_voice_banking">🎤 Voice Transaction</h3>
                 <button onclick="cancelVoiceTransaction()" type="button" aria-label="Close voice transaction" class="text-gray-600 dark:text-white/80 hover:text-black dark:hover:text-white">✕</button>
             </div>
             
@@ -357,24 +357,24 @@
             <div id="voiceConversation" class="min-h-[300px] mb-6 space-y-4">
                 <div class="text-center py-12">
                     <div class="text-6xl mb-4">🎙️</div>
-                    <p class="text-lg text-gray-600 dark:text-white/80">Click "Start Voice Transaction" to begin</p>
+                    <p class="text-lg text-gray-600 dark:text-white/80" data-i18n="banking_voice_instruction">Click "Start Voice Transaction" to begin</p>
                 </div>
             </div>
 
             <!-- Transaction Summary -->
             <div id="transactionSummary" class="p-6 bg-white dark:bg-darkTheme rounded-lg border-2 border-gray-300 dark:border-white/30 mb-6" style="display: none;">
-                <h4 class="font-semibold mb-4 dark:text-white">Transaction Summary</h4>
+                <h4 class="font-semibold mb-4 dark:text-white" data-i18n="banking_transaction_summary">Transaction Summary</h4>
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                        <span class="text-gray-600 dark:text-white/70">Recipient:</span>
+                        <span class="text-gray-600 dark:text-white/70" data-i18n="banking_recipient">Recipient:</span>
                         <span id="summaryRecipient" class="font-semibold dark:text-white">-</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-600 dark:text-white/70">Amount:</span>
+                        <span class="text-gray-600 dark:text-white/70" data-i18n="banking_amount">Amount:</span>
                         <span id="summaryAmount" class="font-semibold dark:text-white">-</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-600 dark:text-white/70">Description:</span>
+                        <span class="text-gray-600 dark:text-white/70" data-i18n="banking_description">Description:</span>
                         <span id="summaryDescription" class="font-semibold dark:text-white">-</span>
                     </div>
                 </div>
@@ -382,13 +382,13 @@
             
             <!-- Action Buttons -->
             <div class="flex gap-4">
-                <button id="startVoiceTransactionBtn" onclick="startVoiceTransaction()" class="flex-1 px-6 py-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                <button id="startVoiceTransactionBtn" onclick="startVoiceTransaction()" class="flex-1 px-6 py-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2" data-i18n="banking_voice_start">
                     🎤 Start Voice Transaction
                 </button>
-                <button id="confirmTransactionBtn" onclick="confirmVoiceTransaction()" style="display: none;" class="flex-1 px-6 py-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition">
+                <button id="confirmTransactionBtn" onclick="confirmVoiceTransaction()" style="display: none;" class="flex-1 px-6 py-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition" data-i18n="banking_confirm_send">
                     ✓ Confirm & Send
                 </button>
-                <button onclick="cancelVoiceTransaction()" class="px-6 py-4 border-2 border-gray-400 dark:border-white/50 rounded-lg font-semibold dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition">
+                <button onclick="cancelVoiceTransaction()" class="px-6 py-4 border-2 border-gray-400 dark:border-white/50 rounded-lg font-semibold dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition" data-i18n="banking_cancel">
                     Cancel
                 </button>
             </div>
@@ -397,8 +397,8 @@
         <!-- Transactions List (Hidden by default) -->
         <div id="transactionsList" class="max-w-5xl mx-auto border border-gray-300 dark:border-white/30 rounded-2xl p-8 bg-white dark:bg-darkTheme" style="display: none;">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-semibold dark:text-white">Transaction History</h3>
-                <button onclick="showMainBanking()" class="px-4 py-2 border-2 border-gray-400 dark:border-white/50 rounded-lg font-semibold dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition">
+                <h3 class="text-2xl font-semibold dark:text-white" data-i18n="banking_history_title">Transaction History</h3>
+                <button onclick="showMainBanking()" class="px-4 py-2 border-2 border-gray-400 dark:border-white/50 rounded-lg font-semibold dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition" data-i18n="common_back">
                     ← Back
                 </button>
             </div>
@@ -410,14 +410,14 @@
         <!-- Balance Display (Hidden by default) -->
         <div id="balanceDisplay" class="max-w-3xl mx-auto border border-green-300 dark:border-green-500 rounded-2xl p-8 bg-green-50 dark:bg-green-900/20" style="display: none;">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-semibold dark:text-white">Account Balance</h3>
+                <h3 class="text-2xl font-semibold dark:text-white" data-i18n="banking_balance">Account Balance</h3>
                 <button onclick="showMainBanking()" type="button" aria-label="Close balance view" class="text-gray-600 dark:text-white/80 hover:text-black dark:hover:text-white">✕</button>
             </div>
             <div class="text-center py-8">
-                <p class="text-gray-600 dark:text-white/80 mb-4">Your current balance is:</p>
+                <p class="text-gray-600 dark:text-white/80 mb-4" data-i18n="banking_balance_text">Your current balance is:</p>
                 <p id="balanceAmount" class="text-6xl font-bold text-green-600 dark:text-green-400">$5,240.50</p>
             </div>
-            <button onclick="showMainBanking()" class="w-full mt-6 px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-bold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition">
+            <button onclick="showMainBanking()" class="w-full mt-6 px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-bold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition" data-i18n="common_ok">
                 Continue
             </button>
         </div>
