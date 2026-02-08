@@ -2,7 +2,7 @@
   "scripts": {
     "build:css": "npx tailwindcss -i ./input.css -o ./output.css",
     "watch:css": "npx tailwindcss -i ./input.css -o ./output.css --watch",
-    "serve": "npx http-server -p 3000 -c-1",
+    "serve": "npx http-server -p 3001 -c-1",
     "start": "npx concurrently \"npm run watch:css\" \"npm run serve\""
   },
   "devDependencies": {
