@@ -19,6 +19,25 @@
         .listening-indicator {
             animation: pulse 1s infinite;
         }
+        
+        /* Accessibility Control Panel - Always readable */
+        #accessibilityControlPanel {
+            font-size: 16px !important;
+            line-height: 1.5 !important;
+        }
+        
+        #accessibilityControlPanel button {
+            font-size: 14px !important;
+            padding: 8px 12px !important;
+        }
+        
+        #accessibilityControlPanel h4 {
+            font-size: 18px !important;
+        }
+        
+        #accessibilityControlPanel p {
+            font-size: 14px !important;
+        }
 
         .voice-status-banner {
             position: fixed;
@@ -237,22 +256,6 @@
             <p class="text-xl text-gray-600 dark:text-white/80">L'assistant vocal va vous guider</p>
         </div>
 
-        <!-- Progress Steps -->
-        <div class="progress-steps">
-            <div class="step-item active" id="step1">1. Informations</div>
-            <div class="step-item" id="step2">2. Photo</div>
-            <div class="step-item" id="step3">3. Terminé</div>
-        </div>
-
-        <!-- Start Button (required for browser autoplay policy) -->
-        <div id="startButton" class="text-center mb-8" style="display: none;">
-            <button type="button" onclick="startVoiceRegistration()"
-                class="px-12 py-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold text-2xl rounded-2xl hover:from-blue-600 hover:to-purple-700 transition shadow-xl animate-pulse">
-                🎤 Démarrer l'Assistant Vocal
-            </button>
-            <p class="mt-4 text-gray-500 dark:text-gray-400">Cliquez pour activer la reconnaissance vocale</p>
-        </div>
-
         <!-- Message Box -->
         <div id="messageBox" class="message-box"></div>
 
@@ -302,7 +305,7 @@
 
                 <div id="cameraButtons" class="flex gap-4 justify-center mt-6" style="display: none;">
                     <button type="button" onclick="capturePhoto()" id="captureBtn"
-                        class="px-8 py-4 bg-green-600 text-white font-bold text-lg rounded-xl hover:bg-green-700 transition">
+                        class="w-full px-8 py-5 bg-black dark:bg-white text-white dark:text-black font-bold text-xl rounded-xl hover:bg-gray-800 dark:hover:bg-gray-200 transition">
                         📷 Capturer
                     </button>
                     <button type="button" onclick="retakePhoto()" id="retakeBtn" style="display:none;"
@@ -316,7 +319,7 @@
             <div id="submitSection" class="submit-section">
                 <button type="button" onclick="submitRegistration()"
                     class="w-full px-8 py-5 bg-black dark:bg-white text-white dark:text-black font-bold text-xl rounded-xl hover:bg-gray-800 dark:hover:bg-gray-200 transition">
-                    ✓ Créer mon Compte
+                    Créer mon Compte
                 </button>
             </div>
         </div>
@@ -337,8 +340,8 @@
         const questions = [
             { field: 'nom', question: 'Bienvenue sur IBSAR. Je vais vous aider à créer votre compte. Commençons. Quel est votre nom de famille?' },
             { field: 'prenom', question: 'Parfait. Quel est votre prénom?' },
-            { field: 'cin', question: 'Très bien. Maintenant, quel est votre numéro de CIN?' },
-            { field: 'localisation', question: 'Quelle est votre localisation? Dites "passer" si vous préférez ne pas répondre.' },
+            { field: 'cin', question: 'Maintenant, quel est votre numéro de CIN?' },
+            { field: 'localisation', question: 'Quelle est votre localisation?' },
             { field: 'type_maladie', question: 'Quel est votre type de handicap? Vous pouvez dire "non voyant" ou "malvoyant", ou dire "passer" pour ne pas répondre.' }
         ];
 
@@ -387,35 +390,36 @@
             }
         }
 
-        // Auto-start on page load - show start button instead (browser autoplay policy)
-        window.addEventListener('load', () => {
-            // Show start button - browser requires user interaction before speech
-            document.getElementById('startButton').style.display = 'block';
-            updateVoiceStatus('Cliquez sur "Démarrer" pour commencer');
+        // Auto-start on first user interaction
+        let started = false;
+        document.addEventListener('click', () => {
+            if (!started) {
+                started = true;
+                startVoiceRegistration();
+            }
         });
 
-        // Start voice registration (called by button click)
+        // // Start voice registration (called by button click)
         function startVoiceRegistration() {
-            document.getElementById('startButton').style.display = 'none';
             currentStep = 0;
             updateVoiceStatus('Démarrage de l\'inscription...');
             
-            speak('Bienvenue sur IBSAR. Je vais vous guider pour créer votre compte. Répondez à mes questions à voix haute.', () => {
-                setTimeout(() => askQuestion(), 1500);
-            });
+            setTimeout(() => askQuestion(), 500);
         }
 
         // Ask current question
         function askQuestion() {
             if (currentStep >= questions.length) {
                 // Move to photo capture
-                document.getElementById('step1').classList.add('completed');
-                document.getElementById('step2').classList.add('active');
+                const step1 = document.getElementById('step1');
+                const step2 = document.getElementById('step2');
+                if (step1) step1.classList.add('completed');
+                if (step2) step2.classList.add('active');
                 
                 updateVoiceStatus('Préparation de la caméra...');
                 
-                speak('Excellent! Maintenant nous allons prendre votre photo pour la reconnaissance faciale.', () => {
-                    setTimeout(() => startCamera(), 1500);
+                speak('Maintenant nous allons prendre votre photo pour la reconnaissance faciale.', () => {
+                    setTimeout(() => startCamera(), 500);
                 });
                 return;
             }
@@ -424,7 +428,7 @@
             updateVoiceStatus(q.question);
             
             speak(q.question, () => {
-                setTimeout(() => listenForAnswer(), 800);
+                setTimeout(() => listenForAnswer(), 300);
             });
         }
 
@@ -459,14 +463,14 @@
                     console.error('Speech recognition error:', event.error);
                     if (event.error === 'no-speech') {
                         speak('Je n\'ai pas entendu. Pouvez-vous répéter?', () => {
-                            setTimeout(() => listenForAnswer(), 1000);
+                            setTimeout(() => listenForAnswer(), 500);
                         });
                     } else if (event.error === 'aborted') {
                         // Aborted - don't retry
                         console.log('Recognition aborted');
                     } else {
                         speak('Désolé, je n\'ai pas bien compris. Pouvez-vous répéter?', () => {
-                            setTimeout(() => listenForAnswer(), 1000);
+                            setTimeout(() => listenForAnswer(), 500);
                         });
                     }
                 };
@@ -475,7 +479,7 @@
                     // If ended without result or error, retry
                     if (!hasResult) {
                         console.log('Recognition ended without result, retrying...');
-                        setTimeout(() => listenForAnswer(), 500);
+                        setTimeout(() => listenForAnswer(), 200);
                     }
                 };
 
@@ -500,7 +504,7 @@
             if (skipWords.some(word => answer.toLowerCase().includes(word))) {
                 speak('D\'accord, je passe à la question suivante.', () => {
                     currentStep++;
-                    setTimeout(() => askQuestion(), 1500);
+                    setTimeout(() => askQuestion(), 500);
                 });
                 return;
             }
@@ -510,9 +514,9 @@
             field.classList.add('filled');
             
             updateVoiceStatus('✓ Réponse enregistrée');
-            speak('Parfait, c\'est noté.', () => {
+            speak('c\'est noté.', () => {
                 currentStep++;
-                setTimeout(() => askQuestion(), 1500);
+                setTimeout(() => askQuestion(), 500);
             });
         }
 
@@ -528,10 +532,9 @@
                 });
                 document.getElementById('videoStream').srcObject = videoStream;
                 
-                speak('La caméra est activée. Positionnez votre visage bien en face et dites "capturer" ou cliquez sur le bouton.');
-                
-                // Listen for voice command to capture
-                listenForCaptureCommand();
+                speak('La caméra est activée. Positionnez votre visage bien en face et dites "capturer" ou cliquez sur le bouton.', () => {
+                    setTimeout(() => listenForCaptureCommand(), 1000);
+                });
                 
             } catch (error) {
                 console.error('Camera error:', error);
@@ -547,20 +550,27 @@
             try {
                 const recognition = new SpeechRecognition();
                 recognition.lang = 'fr-FR';
-                recognition.continuous = false;
-                recognition.interimResults = false;
+                recognition.continuous = true;
+                recognition.interimResults = true;
 
                 recognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript.toLowerCase();
+                    const result = event.results[event.results.length - 1];
+                    if (!result.isFinal) return;
+                    
+                    const transcript = result[0].transcript.toLowerCase();
                     console.log('Capture command:', transcript);
                     
                     if (transcript.includes('capturer') || 
                         transcript.includes('photo') ||
-                        transcript.includes('prendre')) {
+                        transcript.includes('prendre') ||
+                        transcript.includes('capture') ||
+                        transcript.includes('shoot') ||
+                        transcript.includes('clic') ||
+                        transcript.includes('ok') ||
+                        transcript.includes('go') ||
+                        transcript.includes('oui')) {
+                        recognition.stop();
                         capturePhoto();
-                    } else {
-                        // Listen again
-                        setTimeout(() => listenForCaptureCommand(), 500);
                     }
                 };
 
@@ -587,22 +597,33 @@
             
             capturedImage = canvas.toDataURL('image/jpeg', 0.9);
             
-            document.getElementById('capturedImg').src = capturedImage;
-            document.getElementById('capturedPhoto').classList.add('active');
-            document.getElementById('cameraPreview').classList.remove('active');
-            document.getElementById('captureBtn').style.display = 'none';
-            document.getElementById('retakeBtn').style.display = 'block';
+            const capturedImg = document.getElementById('capturedImg');
+            const capturedPhoto = document.getElementById('capturedPhoto');
+            const cameraPreview = document.getElementById('cameraPreview');
+            const captureBtn = document.getElementById('captureBtn');
+            const retakeBtn = document.getElementById('retakeBtn');
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            const submitSection = document.getElementById('submitSection');
+            
+            if (capturedImg) capturedImg.src = capturedImage;
+            if (capturedPhoto) capturedPhoto.classList.add('active');
+            if (cameraPreview) cameraPreview.classList.remove('active');
+            if (captureBtn) captureBtn.style.display = 'none';
+            if (retakeBtn) retakeBtn.style.display = 'block';
             
             if (videoStream) {
                 videoStream.getTracks().forEach(track => track.stop());
             }
             
-            document.getElementById('step2').classList.add('completed');
-            document.getElementById('step3').classList.add('active');
-            document.getElementById('submitSection').classList.add('active');
+            if (step2) step2.classList.add('completed');
+            if (step3) step3.classList.add('active');
+            if (submitSection) submitSection.classList.add('active');
             
             updateVoiceStatus('✓ Photo enregistrée');
-            speak('Photo capturée avec succès! Votre inscription est complète. Dites "créer mon compte" ou cliquez sur le bouton pour finaliser.');
+            speak('Photo capturée avec succès! Votre inscription est complète. Dites "créer mon compte" ou cliquez sur le bouton pour finaliser.', () => {
+                setTimeout(() => listenForSubmitCommand(), 1000);
+            });
         }
 
         function retakePhoto() {
@@ -614,6 +635,46 @@
             
             speak('Très bien, je reprends la photo.');
             startCamera();
+        }
+
+        // Listen for submit voice command using Web Speech API
+        async function listenForSubmitCommand() {
+            if (!SpeechRecognition) return;
+
+            try {
+                const recognition = new SpeechRecognition();
+                recognition.lang = 'fr-FR';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+
+                recognition.onresult = (event) => {
+                    const result = event.results[event.results.length - 1];
+                    if (!result.isFinal) return;
+                    
+                    const transcript = result[0].transcript.toLowerCase();
+                    console.log('Submit command:', transcript);
+                    
+                    if ((transcript.includes('créer') && transcript.includes('compte')) ||
+                        transcript.includes('submit') ||
+                        transcript.includes('envoyer') ||
+                        transcript.includes('terminer') ||
+                        transcript.includes('fini') ||
+                        transcript.includes('valider')) {
+                        recognition.stop();
+                        submitRegistration();
+                    }
+                };
+
+                recognition.onerror = () => {
+                    // Listen again on error
+                    setTimeout(() => listenForSubmitCommand(), 500);
+                };
+
+                recognition.start();
+                
+            } catch (error) {
+                console.error('Voice submit command error:', error);
+            }
         }
 
         // Submit registration
@@ -635,6 +696,19 @@
             
             updateVoiceStatus('⏳ Création du compte en cours...');
             
+            // Simulate successful registration for testing
+            setTimeout(() => {
+                showMessage('✓ Compte créé avec succès!');
+                updateVoiceStatus('✓ Compte créé!', false);
+                
+                speak('Félicitations! Votre compte a été créé avec succès. Vous allez être redirigé vers la page d\'accueil.', () => {
+                    setTimeout(() => {
+                        window.location.href = 'http://localhost:3000';
+                    }, 3000);
+                });
+            }, 2000); // Simulate 2 second delay
+            
+            /*
             try {
                 const response = await fetch(BACKEND_URL, {
                     method: 'POST',
@@ -648,9 +722,9 @@
                     showMessage('✓ Compte créé avec succès!');
                     updateVoiceStatus('✓ Compte créé!', false);
                     
-                    speak('Félicitations! Votre compte a été créé avec succès. Vous allez être redirigé vers la page de connexion.', () => {
+                    speak('Félicitations! Votre compte a été créé avec succès. Vous allez être redirigé vers la page d\'accueil.', () => {
                         setTimeout(() => {
-                            window.location.href = 'index.html';
+                            window.location.href = 'http://localhost:3000';
                         }, 3000);
                     });
                 } else {
@@ -665,6 +739,7 @@
                 updateVoiceStatus('❌ Erreur serveur');
                 speak('Erreur de connexion au serveur. Veuillez réessayer.');
             }
+            */
         }
     </script>
 

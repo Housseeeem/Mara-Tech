@@ -642,9 +642,10 @@ function viewBalance() {
     // Update balance display
     document.getElementById('balanceAmount').textContent = `$${accountBalance.toFixed(2)}`;
 
-    // Announce with voice
-    const utterance = new SpeechSynthesisUtterance(`Your current account balance is ${accountBalance.toFixed(2)} dollars.`);
-    utterance.lang = 'en-US';
+    // Announce with voice (localized)
+    const balanceMessage = `${t('banking_balance_text')} ${accountBalance.toFixed(2)}`;
+    const utterance = new SpeechSynthesisUtterance(balanceMessage);
+    utterance.lang = getCurrentLanguageConfig().speechCode;
     speechSynthesis.speak(utterance);
 }
 
@@ -659,10 +660,10 @@ function updateAccountBalance() {
 // ===== BANKING VOICE CONTROL =====
 
 const bankingVoiceOptions = [
-    { name: 'Make Transaction', keywords: ['transaction', 'send money', 'transfer', 'pay', 'payment', 'envoyer'], action: showTransactionForm },
-    { name: 'View Transactions', keywords: ['view transactions', 'transaction history', 'history', 'transactions', 'historique'], action: showTransactions },
-    { name: 'Check Balance', keywords: ['balance', 'check balance', 'view balance', 'solde', 'account balance'], action: viewBalance },
-    { name: 'Home', keywords: ['home', 'main', 'back', 'return', 'accueil', 'retour'], action: showMainBanking }
+    { name: 'banking_new_transaction', keywords: ['transaction', 'send money', 'transfer', 'pay', 'payment', 'envoyer'], action: showTransactionForm },
+    { name: 'banking_view_history', keywords: ['view transactions', 'transaction history', 'history', 'transactions', 'historique'], action: showTransactions },
+    { name: 'banking_check_balance', keywords: ['balance', 'check balance', 'view balance', 'solde', 'account balance'], action: viewBalance },
+    { name: 'banking_back_main', keywords: ['home', 'main', 'back', 'return', 'accueil', 'retour'], action: showMainBanking }
 ];
 
 /**
@@ -670,7 +671,7 @@ const bankingVoiceOptions = [
  * @returns {string} Comma-separated list of voice options
  */
 function getBankingVoiceOptions() {
-    return bankingVoiceOptions.map(option => option.name).join(', ');
+    return bankingVoiceOptions.map(option => t(option.name)).join(', ');
 }
 
 /**
@@ -684,10 +685,10 @@ function startBankingVoiceControl() {
         return;
     }
 
-    // Read available options
-    const message = `Banking voice control activated. Available options: ${getBankingVoiceOptions()}. Please say which action you want to perform.`;
+    // Read available options (localized)
+    const message = `${t('banking_voice_banking')}. ${getBankingVoiceOptions()}.`;
     const utterance = new SpeechSynthesisUtterance(message);
-    utterance.lang = 'en-US';
+    utterance.lang = getCurrentLanguageConfig().speechCode;
     utterance.rate = 0.9;
 
     utterance.onend = () => {
@@ -705,7 +706,7 @@ function startBankingVoiceControl() {
 function listenForBankingCommand() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
+    recognition.lang = getCurrentLanguageConfig().speechCode;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
@@ -717,7 +718,7 @@ function listenForBankingCommand() {
         document.body.appendChild(bankingIndicator);
     }
 
-    bankingIndicator.innerHTML = `<div style="position: fixed; bottom: 30px; right: 30px; padding: 20px; background: #e3f2fd; border: 2px solid #1976d2; border-radius: 8px; z-index: 999; max-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><span class="listening-indicator" style="color: #1976d2; font-weight: bold; font-size: 1.1em;">🎤 Listening for banking command...</span><br><span style="font-size: 0.9em; color: #333; margin-top: 8px; display: block;">Say: ${getBankingVoiceOptions()}</span></div>`;
+    bankingIndicator.innerHTML = `<div style="position: fixed; bottom: 30px; right: 30px; padding: 20px; background: #e3f2fd; border: 2px solid #1976d2; border-radius: 8px; z-index: 999; max-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><span class="listening-indicator" style="color: #1976d2; font-weight: bold; font-size: 1.1em;">🎤 ${t('banking_voice_banking')}</span><br><span style="font-size: 0.9em; color: #333; margin-top: 8px; display: block;">${getBankingVoiceOptions()}</span></div>`;
 
     recognition.start();
 
