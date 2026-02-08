@@ -44,22 +44,102 @@ function showTransactionForm() {
     document.getElementById('transactionForm').style.display = 'block';
     document.getElementById('transactionsList').style.display = 'none';
     document.getElementById('balanceDisplay').style.display = 'none';
-    
+
     // Reset the interface
     document.getElementById('voiceConversation').innerHTML = `
         <div class="text-center py-12">
             <div class="text-6xl mb-4">🎙️</div>
-            <p class="text-lg text-gray-600 dark:text-white/80">Click "Start Voice Transaction" to begin</p>
+            <p class="text-lg text-gray-600 dark:text-white/80">Say "Start" to begin the transaction</p>
         </div>
     `;
     document.getElementById('transactionSummary').style.display = 'none';
-    document.getElementById('startVoiceTransactionBtn').style.display = 'flex';
+    document.getElementById('startVoiceTransactionBtn').style.display = 'none'; // Hide the button
     document.getElementById('confirmTransactionBtn').style.display = 'none';
-    
-    // Announce with voice
-    const utterance = new SpeechSynthesisUtterance('Voice transaction mode activated. Click start to begin the conversation.');
+
+    // Announce with voice and then listen for "start"
+    const utterance = new SpeechSynthesisUtterance('Voice transaction mode activated. Say start to begin the transaction.');
     utterance.lang = 'en-US';
+    utterance.onend = () => {
+        setTimeout(() => {
+            listenForStartCommand();
+        }, 500);
+    };
     speechSynthesis.speak(utterance);
+}
+
+/**
+ * Listen for "start" command to begin transaction
+ */
+function listenForStartCommand() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+        addConversationMessage('system', 'Speech recognition not supported. Please click the start button.');
+        document.getElementById('startVoiceTransactionBtn').style.display = 'flex';
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    // Update UI to show listening
+    document.getElementById('voiceConversation').innerHTML = `
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4 listening-indicator">🎤</div>
+            <p class="text-lg text-gray-600 dark:text-white/80">Listening... Say "Start" or "Commencer"</p>
+        </div>
+    `;
+
+    recognition.start();
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.toLowerCase().trim();
+
+        // Check for start keywords in multiple languages
+        const startKeywords = ['start', 'commencer', 'démarrer', 'demarrer', 'débuter', 'debuter', 'go', 'begin', 'oui', 'yes'];
+        const isStart = startKeywords.some(keyword => transcript.includes(keyword));
+
+        if (isStart) {
+            startVoiceTransaction();
+        } else {
+            // Retry
+            document.getElementById('voiceConversation').innerHTML = `
+                <div class="text-center py-12">
+                    <div class="text-6xl mb-4">🎙️</div>
+                    <p class="text-lg text-gray-600 dark:text-white/80">I heard "${transcript}". Say "Start" to begin.</p>
+                </div>
+            `;
+
+            const retryUtterance = new SpeechSynthesisUtterance('Please say start to begin the transaction.');
+            retryUtterance.lang = 'en-US';
+            retryUtterance.onend = () => {
+                setTimeout(() => {
+                    listenForStartCommand();
+                }, 500);
+            };
+            speechSynthesis.speak(retryUtterance);
+        }
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Start command recognition error:', event.error);
+        if (event.error === 'no-speech') {
+            // Retry if no speech detected
+            const retryUtterance = new SpeechSynthesisUtterance('I did not hear anything. Say start to begin.');
+            retryUtterance.lang = 'en-US';
+            retryUtterance.onend = () => {
+                setTimeout(() => {
+                    listenForStartCommand();
+                }, 500);
+            };
+            speechSynthesis.speak(retryUtterance);
+        } else {
+            // Show button as fallback
+            document.getElementById('startVoiceTransactionBtn').style.display = 'flex';
+        }
+    };
 }
 
 /**
@@ -71,13 +151,13 @@ function showTransactionForm() {
 function addConversationMessage(speaker, message, isListening = false) {
     const container = document.getElementById('voiceConversation');
     const messageDiv = document.createElement('div');
-    messageDiv.className = speaker === 'system' 
-        ? 'p-4 bg-blue-100 dark:bg-blue-900/40 rounded-lg' 
+    messageDiv.className = speaker === 'system'
+        ? 'p-4 bg-blue-100 dark:bg-blue-900/40 rounded-lg'
         : 'p-4 bg-gray-100 dark:bg-white/10 rounded-lg';
-    
+
     const icon = speaker === 'system' ? '🤖' : '👤';
     const label = speaker === 'system' ? 'System' : 'You';
-    
+
     messageDiv.innerHTML = `
         <div class="flex items-start gap-3">
             <span class="text-2xl">${icon}</span>
@@ -88,7 +168,7 @@ function addConversationMessage(speaker, message, isListening = false) {
             </div>
         </div>
     `;
-    
+
     container.appendChild(messageDiv);
     container.scrollTop = container.scrollHeight;
 }
@@ -102,7 +182,7 @@ function startVoiceTransaction() {
     // Clear previous conversation
     document.getElementById('voiceConversation').innerHTML = '';
     document.getElementById('startVoiceTransactionBtn').style.display = 'none';
-    
+
     // Reset transaction data
     voiceTransactionData = {
         recipient: null,
@@ -110,7 +190,7 @@ function startVoiceTransaction() {
         description: null,
         step: 0
     };
-    
+
     // Start conversation
     askForRecipient();
 }
@@ -122,17 +202,17 @@ function askForRecipient() {
     voiceTransactionData.step = 1;
     const message = "Who would you like to send money to? Please say the recipient's name.";
     addConversationMessage('system', message);
-    
+
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = 'en-US';
     utterance.rate = 0.9;
-    
+
     utterance.onend = () => {
         setTimeout(() => {
             listenForResponse();
         }, 500);
     };
-    
+
     speechSynthesis.speak(utterance);
 }
 
@@ -143,17 +223,17 @@ function askForAmount() {
     voiceTransactionData.step = 2;
     const message = `Great! How much would you like to send to ${voiceTransactionData.recipient}? Please say the amount in dollars.`;
     addConversationMessage('system', message);
-    
+
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = 'en-US';
     utterance.rate = 0.9;
-    
+
     utterance.onend = () => {
         setTimeout(() => {
             listenForResponse();
         }, 500);
     };
-    
+
     speechSynthesis.speak(utterance);
 }
 
@@ -164,17 +244,17 @@ function askForDescription() {
     voiceTransactionData.step = 3;
     const message = "What is this payment for? Please briefly describe the transaction.";
     addConversationMessage('system', message);
-    
+
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = 'en-US';
     utterance.rate = 0.9;
-    
+
     utterance.onend = () => {
         setTimeout(() => {
             listenForResponse();
         }, 500);
     };
-    
+
     speechSynthesis.speak(utterance);
 }
 
@@ -183,42 +263,42 @@ function askForDescription() {
  */
 function listenForResponse() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
+
     if (!SpeechRecognition) {
         addConversationMessage('system', 'Speech recognition not supported. Please use a compatible browser.');
         return;
     }
-    
+
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-    
+
     // Add listening indicator
     addConversationMessage('system', 'Listening...', true);
-    
+
     recognition.start();
-    
+
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript.trim();
-        
+
         // Remove listening indicator
         const lastMessage = document.getElementById('voiceConversation').lastChild;
         if (lastMessage) lastMessage.remove();
-        
+
         // Add user's response
         addConversationMessage('user', transcript);
-        
+
         // Process based on current step
         processVoiceResponse(transcript);
     };
-    
+
     recognition.onerror = (event) => {
         const lastMessage = document.getElementById('voiceConversation').lastChild;
         if (lastMessage) lastMessage.remove();
-        
+
         addConversationMessage('system', `Error: ${event.error}. Please try again.`);
-        
+
         // Retry current step
         setTimeout(() => {
             retryCurrentStep();
@@ -232,7 +312,7 @@ function listenForResponse() {
  */
 function processVoiceResponse(transcript) {
     const step = voiceTransactionData.step;
-    
+
     if (step === 1) {
         // Extract recipient name
         voiceTransactionData.recipient = transcript;
@@ -264,13 +344,13 @@ function processVoiceResponse(transcript) {
 function extractAmount(text) {
     // Remove common words
     text = text.toLowerCase().replace(/dollars?|bucks?|usd|\$/g, '').trim();
-    
+
     // Try to find a number
     const numberMatch = text.match(/(\d+(?:\.\d{1,2})?)/);
     if (numberMatch) {
         return parseFloat(numberMatch[1]);
     }
-    
+
     // Word to number conversion for common amounts
     const wordNumbers = {
         'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
@@ -279,13 +359,13 @@ function extractAmount(text) {
         'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
         'hundred': 100, 'thousand': 1000
     };
-    
+
     for (const [word, num] of Object.entries(wordNumbers)) {
         if (text.includes(word)) {
             return num;
         }
     }
-    
+
     return null;
 }
 
@@ -294,21 +374,108 @@ function extractAmount(text) {
  */
 function showTransactionSummary() {
     voiceTransactionData.step = 4;
-    
+
     // Update summary display
     document.getElementById('summaryRecipient').textContent = voiceTransactionData.recipient;
     document.getElementById('summaryAmount').textContent = `$${voiceTransactionData.amount.toFixed(2)}`;
     document.getElementById('summaryDescription').textContent = voiceTransactionData.description;
     document.getElementById('transactionSummary').style.display = 'block';
-    document.getElementById('confirmTransactionBtn').style.display = 'block';
-    
-    const message = `Perfect! Let me confirm: You want to send $${voiceTransactionData.amount.toFixed(2)} to ${voiceTransactionData.recipient} for ${voiceTransactionData.description}. Click confirm to complete the transaction.`;
+    document.getElementById('confirmTransactionBtn').style.display = 'none'; // Hide button, use voice
+
+    const message = `Perfect! Let me confirm: You want to send $${voiceTransactionData.amount.toFixed(2)} to ${voiceTransactionData.recipient} for ${voiceTransactionData.description}. Say confirm to complete the transaction, or say cancel to abort.`;
     addConversationMessage('system', message);
-    
+
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = 'en-US';
     utterance.rate = 0.9;
+    utterance.onend = () => {
+        setTimeout(() => {
+            listenForConfirmCommand();
+        }, 500);
+    };
     speechSynthesis.speak(utterance);
+}
+
+/**
+ * Listen for "confirm" or "cancel" command to complete or abort transaction
+ */
+function listenForConfirmCommand() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+        addConversationMessage('system', 'Speech recognition not supported. Please click the confirm button.');
+        document.getElementById('confirmTransactionBtn').style.display = 'block';
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    // Add listening indicator
+    addConversationMessage('system', 'Listening for confirmation...', true);
+
+    recognition.start();
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.toLowerCase().trim();
+
+        // Remove listening indicator
+        const lastMessage = document.getElementById('voiceConversation').lastChild;
+        if (lastMessage) lastMessage.remove();
+
+        // Add user's response
+        addConversationMessage('user', transcript);
+
+        // Check for confirm keywords
+        const confirmKeywords = ['confirm', 'confirmer', 'yes', 'oui', 'validate', 'valider', 'ok', 'send', 'envoyer'];
+        const cancelKeywords = ['cancel', 'annuler', 'no', 'non', 'stop', 'abort'];
+
+        const isConfirm = confirmKeywords.some(keyword => transcript.includes(keyword));
+        const isCancel = cancelKeywords.some(keyword => transcript.includes(keyword));
+
+        if (isConfirm) {
+            confirmVoiceTransaction();
+        } else if (isCancel) {
+            cancelVoiceTransaction();
+        } else {
+            // Retry
+            const retryMessage = `I heard "${transcript}". Please say confirm to complete the transaction, or cancel to abort.`;
+            addConversationMessage('system', retryMessage);
+
+            const retryUtterance = new SpeechSynthesisUtterance(retryMessage);
+            retryUtterance.lang = 'en-US';
+            retryUtterance.onend = () => {
+                setTimeout(() => {
+                    listenForConfirmCommand();
+                }, 500);
+            };
+            speechSynthesis.speak(retryUtterance);
+        }
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Confirm command recognition error:', event.error);
+
+        // Remove listening indicator
+        const lastMessage = document.getElementById('voiceConversation').lastChild;
+        if (lastMessage) lastMessage.remove();
+
+        if (event.error === 'no-speech') {
+            const retryUtterance = new SpeechSynthesisUtterance('I did not hear anything. Say confirm or cancel.');
+            retryUtterance.lang = 'en-US';
+            retryUtterance.onend = () => {
+                setTimeout(() => {
+                    listenForConfirmCommand();
+                }, 500);
+            };
+            speechSynthesis.speak(retryUtterance);
+        } else {
+            // Show button as fallback
+            document.getElementById('confirmTransactionBtn').style.display = 'block';
+        }
+    };
 }
 
 /**
@@ -316,17 +483,17 @@ function showTransactionSummary() {
  */
 function confirmVoiceTransaction() {
     const { recipient, amount, description } = voiceTransactionData;
-    
+
     if (amount > accountBalance) {
         const message = `Insufficient funds! Your current balance is $${accountBalance.toFixed(2)}`;
         addConversationMessage('system', message);
-        
+
         const utterance = new SpeechSynthesisUtterance(message);
         utterance.lang = 'en-US';
         speechSynthesis.speak(utterance);
         return;
     }
-    
+
     // Process transaction
     accountBalance -= amount;
     const newTransaction = {
@@ -338,24 +505,29 @@ function confirmVoiceTransaction() {
         recipient: recipient
     };
     transactions.unshift(newTransaction);
-    
+
     // Update balance display
     updateAccountBalance();
-    
+
     // Send to backend (simulate PostgreSQL insert)
     sendTransactionToBackend(newTransaction);
-    
+
     // Show success
     const successMessage = `Transaction successful! Sent $${amount.toFixed(2)} to ${recipient}. Your new balance is $${accountBalance.toFixed(2)}.`;
     addConversationMessage('system', successMessage);
-    
+
     const utterance = new SpeechSynthesisUtterance(successMessage);
     utterance.lang = 'en-US';
     speechSynthesis.speak(utterance);
-    
+
     // Return to main view after delay
     setTimeout(() => {
         showMainBanking();
+        // Notify the voice assistant that transaction is complete
+        if (typeof window.onTransactionComplete === 'function') {
+            window.onTransactionComplete();
+            window.onTransactionComplete = null; // Clear the callback
+        }
     }, 4000);
 }
 
@@ -365,6 +537,11 @@ function confirmVoiceTransaction() {
 function cancelVoiceTransaction() {
     speechSynthesis.cancel();
     showMainBanking();
+    // Notify the voice assistant that transaction was canceled
+    if (typeof window.onTransactionComplete === 'function') {
+        window.onTransactionComplete();
+        window.onTransactionComplete = null; // Clear the callback
+    }
 }
 
 /**
@@ -386,7 +563,7 @@ function retryCurrentStep() {
 function sendTransactionToBackend(transaction) {
     // Send to Django backend which executes PostgreSQL query
     // INSERT INTO hist_banque (bid_sender, bid_reciever, action, montant, time)
-    
+
     fetch(BANKING_API_URL, {
         method: 'POST',
         headers: {
@@ -395,24 +572,24 @@ function sendTransactionToBackend(transaction) {
         body: JSON.stringify({
             sender_bank_id: '****5678',  // Current user's bank ID
             recipient: transaction.recipient,
-            amount: transaction.amount,
+            amount: Math.abs(transaction.amount),  // Ensure positive amount for backend
             description: transaction.description
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('✅ Transaction saved to PostgreSQL database:', data);
-            console.log(`Transaction ID: ${data.transaction_id}`);
-            console.log(`New Balance: $${data.new_balance}`);
-        } else {
-            console.error('❌ Transaction failed:', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('❌ Network error:', error);
-        console.log('Transaction saved locally but not synced to database');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('✅ Transaction saved to PostgreSQL database:', data);
+                console.log(`Transaction ID: ${data.transaction_id}`);
+                console.log(`New Balance: $${data.new_balance}`);
+            } else {
+                console.error('❌ Transaction failed:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Network error:', error);
+            console.log('Transaction saved locally but not synced to database');
+        });
 }
 
 /**
@@ -423,11 +600,11 @@ function showTransactions() {
     document.getElementById('transactionForm').style.display = 'none';
     document.getElementById('transactionsList').style.display = 'block';
     document.getElementById('balanceDisplay').style.display = 'none';
-    
+
     // Populate transactions
     const container = document.getElementById('transactionsContainer');
     container.innerHTML = '';
-    
+
     if (transactions.length === 0) {
         container.innerHTML = '<p class="text-center text-gray-600 dark:text-white/80">No transactions yet</p>';
     } else {
@@ -446,7 +623,7 @@ function showTransactions() {
             container.appendChild(transactionDiv);
         });
     }
-    
+
     // Announce with voice
     const utterance = new SpeechSynthesisUtterance(`Showing ${transactions.length} transactions.`);
     utterance.lang = 'en-US';
@@ -461,10 +638,10 @@ function viewBalance() {
     document.getElementById('transactionForm').style.display = 'none';
     document.getElementById('transactionsList').style.display = 'none';
     document.getElementById('balanceDisplay').style.display = 'block';
-    
+
     // Update balance display
     document.getElementById('balanceAmount').textContent = `$${accountBalance.toFixed(2)}`;
-    
+
     // Announce with voice
     const utterance = new SpeechSynthesisUtterance(`Your current account balance is ${accountBalance.toFixed(2)} dollars.`);
     utterance.lang = 'en-US';
@@ -501,24 +678,24 @@ function getBankingVoiceOptions() {
  */
 function startBankingVoiceControl() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
+
     if (!SpeechRecognition) {
         alert('Speech recognition not supported on your browser');
         return;
     }
-    
+
     // Read available options
     const message = `Banking voice control activated. Available options: ${getBankingVoiceOptions()}. Please say which action you want to perform.`;
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = 'en-US';
     utterance.rate = 0.9;
-    
+
     utterance.onend = () => {
         setTimeout(() => {
             listenForBankingCommand();
         }, 500);
     };
-    
+
     speechSynthesis.speak(utterance);
 }
 
@@ -531,7 +708,7 @@ function listenForBankingCommand() {
     recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-    
+
     // Create or update banking voice indicator
     let bankingIndicator = document.getElementById('bankingVoiceIndicator');
     if (!bankingIndicator) {
@@ -539,18 +716,18 @@ function listenForBankingCommand() {
         bankingIndicator.id = 'bankingVoiceIndicator';
         document.body.appendChild(bankingIndicator);
     }
-    
+
     bankingIndicator.innerHTML = `<div style="position: fixed; bottom: 30px; right: 30px; padding: 20px; background: #e3f2fd; border: 2px solid #1976d2; border-radius: 8px; z-index: 999; max-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><span class="listening-indicator" style="color: #1976d2; font-weight: bold; font-size: 1.1em;">🎤 Listening for banking command...</span><br><span style="font-size: 0.9em; color: #333; margin-top: 8px; display: block;">Say: ${getBankingVoiceOptions()}</span></div>`;
-    
+
     recognition.start();
-    
+
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript.toLowerCase().trim();
         const confidence = event.results[0][0].confidence;
-        
+
         let matchedOption = null;
         let highestScore = 0;
-        
+
         for (const option of bankingVoiceOptions) {
             for (const keyword of option.keywords) {
                 if (transcript.includes(keyword)) {
@@ -562,13 +739,13 @@ function listenForBankingCommand() {
                 }
             }
         }
-        
+
         bankingIndicator.innerHTML = `<div style="position: fixed; bottom: 30px; right: 30px; padding: 20px; background: ${matchedOption ? '#d4edda' : '#f8d7da'}; border: 2px solid ${matchedOption ? '#28a745' : '#dc3545'}; border-radius: 8px; z-index: 999; max-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><strong>You said:</strong> "${transcript}"<br><strong>Confidence:</strong> ${(confidence * 100).toFixed(0)}%<br><strong>Action:</strong> ${matchedOption ? matchedOption.name : 'No match found'}</div>`;
-        
+
         if (matchedOption) {
             setTimeout(() => {
                 matchedOption.action();
-                
+
                 setTimeout(() => {
                     bankingIndicator.remove();
                 }, 3000);
@@ -579,7 +756,7 @@ function listenForBankingCommand() {
             }, 3000);
         }
     };
-    
+
     recognition.onerror = (event) => {
         bankingIndicator.innerHTML = `<div style="position: fixed; bottom: 30px; right: 30px; padding: 20px; background: #f8d7da; border: 2px solid #dc3545; border-radius: 8px; z-index: 999; max-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><strong style="color: #721c24;">Error:</strong> ${event.error}</div>`;
         setTimeout(() => {

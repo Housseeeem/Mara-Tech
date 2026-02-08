@@ -23,11 +23,12 @@ class VisionResult:
     score: float
     reason: str
     source: str
+    is_blind: bool = False
     model: str | None = None
     details: dict[str, float] | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        data = {"ok": self.ok, "score": self.score, "reason": self.reason, "source": self.source}
+        data = {"ok": self.ok, "score": self.score, "reason": self.reason, "source": self.source, "is_blind": self.is_blind}
         if self.model:
             data["model"] = self.model
         if self.details:
@@ -72,11 +73,35 @@ def _call_vlm(image_data: str, threshold: float | None) -> VisionResult | None:
         "model": model,
         "temperature": 0,
         "messages": [
-            {"role": "system", "content": "You are a vision quality assessment expert. Evaluate a user's vision capacity. Reply ONLY with strict JSON."},
+            {"role": "system", "content": "You are an expert at detecting if a person is blind, has closed eyes, or wears dark sunglasses. You MUST be very strict about this."},
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "Analyze this image to assess vision capacity. Evaluate: 1. Eye condition 2. Lighting 3. Distance 4. Head position 5. Overall clarity. Return ONLY json with: score (0-100), ok (boolean, true if >= 60), reason (brief description)."},
+                    {"type": "text", "text": """Analyze this person's eyes very carefully. Follow these steps:
+
+STEP 1: Look at the eyelids. Are they OPEN or CLOSED?
+- If you see the white part of the eyes (sclera) and pupils → eyes are OPEN
+- If you only see eyelids covering everything → eyes are CLOSED
+
+STEP 2: Look for sunglasses or very dark glasses
+- Are they wearing dark/black sunglasses that hide the eyes?
+
+STEP 3: Determine is_blind
+- Set is_blind = TRUE if ANY of these:
+  * Eyes are CLOSED (eyelids covering eyes)
+  * Wearing very dark/black sunglasses
+  * Person appears to be blind
+- Set is_blind = FALSE only if eyes are clearly OPEN and visible
+
+EXAMPLES:
+- Closed eyelids → is_blind: true, reason: "Eyes are closed"
+- Dark sunglasses → is_blind: true, reason: "Wearing dark sunglasses"
+- Open eyes visible → is_blind: false, reason: "Eyes are open and visible"
+
+Return ONLY this JSON format:
+{"score": 0-100, "ok": true/false, "is_blind": true/false, "reason": "what you see"}
+
+BE VERY CAREFUL: If you cannot clearly see open eyes with pupils visible, set is_blind to TRUE."""},
                     {"type": "image_url", "image_url": {"url": _normalize_data_url(image_data)}},
                 ],
             },
@@ -97,13 +122,16 @@ def _call_vlm(image_data: str, threshold: float | None) -> VisionResult | None:
             parsed = json.loads(data["choices"][0]["message"]["content"])
             score = float(parsed.get("score", 0.0))
             ok = score >= threshold if threshold is not None else bool(parsed.get("ok", False))
-            return VisionResult(ok=ok, score=round(score, 2), reason=str(parsed.get("reason", "")), model=model, source="vlm")
+            is_blind = bool(parsed.get("is_blind", False))
+            logger.info(f"VLM Response: score={score}, is_blind={is_blind}, reason={parsed.get('reason', '')}")
+            return VisionResult(ok=ok, score=round(score, 2), reason=str(parsed.get("reason", "")), model=model, source="vlm", is_blind=is_blind)
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, KeyError, IndexError, json.JSONDecodeError) as exc:
         logger.warning("VLM request failed: %s", exc)
         return None
 
 
 _FACE_CASCADE = os.path.join(cv2.data.haarcascades, "haarcascade_frontalface_default.xml")
+_EYE_CASCADE = os.path.join(cv2.data.haarcascades, "haarcascade_eye.xml")
 
 
 def _assess_local(image: np.ndarray, threshold: float | None) -> VisionResult:
@@ -118,6 +146,7 @@ def _assess_local(image: np.ndarray, threshold: float | None) -> VisionResult:
     contrast_penalty = 20.0 if contrast < 20 else 0.0
 
     distance_penalty = 0.0
+    is_blind = False
     reason_parts = []
     if brightness < 50:
         reason_parts.append("Éclairage très faible")
@@ -129,9 +158,12 @@ def _assess_local(image: np.ndarray, threshold: float | None) -> VisionResult:
         reason_parts.append("Contraste faible")
 
     try:
-        faces = cv2.CascadeClassifier(_FACE_CASCADE).detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
+        face_cascade = cv2.CascadeClassifier(_FACE_CASCADE)
+        eye_cascade = cv2.CascadeClassifier(_EYE_CASCADE)
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
+        
         if len(faces) > 0:
-            _, _, w, h = max(faces, key=lambda box: box[2] * box[3])
+            x, y, w, h = max(faces, key=lambda box: box[2] * box[3])
             face_ratio = float(w * h) / float(gray.shape[0] * gray.shape[1])
             if face_ratio > 0.45:
                 distance_penalty = 30.0
@@ -139,6 +171,46 @@ def _assess_local(image: np.ndarray, threshold: float | None) -> VisionResult:
             elif face_ratio > 0.30:
                 distance_penalty = 15.0
                 reason_parts.append("Proche de la caméra")
+            
+            # Detect eyes in the face region with stricter parameters
+            roi_gray = gray[y:y+h, x:x+w]
+            roi_color = image[y:y+h, x:x+w]
+            
+            # First attempt: strict detection for open eyes
+            eyes = eye_cascade.detectMultiScale(roi_gray, scaleFactor=1.05, minNeighbors=8, minSize=(25, 25))
+            
+            # Second attempt: more lenient if no eyes found
+            if len(eyes) == 0:
+                eyes = eye_cascade.detectMultiScale(roi_gray, scaleFactor=1.1, minNeighbors=5, minSize=(20, 20))
+            
+            # Analyze eye region for closed eyes detection
+            eye_region_top = roi_gray[int(h*0.25):int(h*0.6), :]  # Upper half where eyes should be
+            
+            # Use edge detection to find eye contours
+            edges = cv2.Canny(eye_region_top, 50, 150)
+            edge_density = float(cv2.countNonZero(edges)) / float(eye_region_top.size)
+            
+            # If very few eyes detected (0 or 1) and low edge density, likely closed
+            if len(eyes) <= 1 and edge_density < 0.02:
+                is_blind = True
+                reason_parts.append("Yeux fermés détectés (faible densité de contours)")
+            elif len(eyes) == 0:
+                is_blind = True
+                reason_parts.append("Yeux non détectés (possiblement fermés ou lunettes noires)")
+            else:
+                # Check for very dark regions (potential dark sunglasses)
+                dark_eye_count = 0
+                for (ex, ey, ew, eh) in eyes:
+                    eye_region = roi_gray[ey:ey+eh, ex:ex+ew]
+                    eye_brightness = float(cv2.mean(eye_region)[0])
+                    # Very dark eye regions suggest dark sunglasses
+                    if eye_brightness < 40:
+                        dark_eye_count += 1
+                
+                # If most detected eyes are very dark
+                if dark_eye_count >= len(eyes) * 0.5:
+                    is_blind = True
+                    reason_parts.append("Lunettes noires détectées")
     except Exception:
         pass
 
@@ -150,6 +222,7 @@ def _assess_local(image: np.ndarray, threshold: float | None) -> VisionResult:
         score=round(score, 2),
         reason=" + ".join(reason_parts) if reason_parts else "Conditions visuelles correctes",
         source="fallback",
+        is_blind=is_blind,
         details={"sharpness": round(normalized_sharpness, 2), "brightness": round(brightness, 2), "contrast": round(contrast, 2)},
     )
 
